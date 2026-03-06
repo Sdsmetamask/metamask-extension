@@ -19,5 +19,5 @@ export function loadAuthenticationConfig(): Env {
   if (buildType === 'beta' || buildType === 'uat') {
     return Env.UAT;
   }
-  return Env.PRD;
+  return Env.UAT;
 }

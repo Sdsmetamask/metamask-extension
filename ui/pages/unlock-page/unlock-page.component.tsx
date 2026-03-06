@@ -58,6 +58,13 @@ import { getCaretCoordinates } from './unlock-page.util';
 import ResetPasswordModal from './reset-password-modal';
 import FormattedCounter from './formatted-counter';
 import { MetamaskWordmarkLogo } from './metamask-wordmark-logo';
+import { hasPasskey, getPasskeyUnlockData } from '../../store/actions';
+import {
+  deriveKPasswordKey,
+  decryptPassword,
+  base64UrlToArrayBuffer,
+  base64ToArrayBuffer,
+} from '../../../shared/lib/passkey';
 
 type UnlockPageProps = {
   navigate: NavigateFunction;
@@ -87,6 +94,8 @@ type UnlockPageState = {
   unlockDelayPeriod: number;
   showLoginErrorModal: boolean;
   showConnectionsRemovedModal: boolean;
+  hasPasskey: boolean;
+  passkeyUnlockInProgress: boolean;
 };
 
 type UnlockPageContext = {
@@ -200,6 +209,8 @@ class UnlockPage extends Component<UnlockPageProps, UnlockPageState> {
     unlockDelayPeriod: 0,
     showLoginErrorModal: false,
     showConnectionsRemovedModal: false,
+    hasPasskey: false,
+    passkeyUnlockInProgress: false,
   };
 
   // TODO: Fix in https://github.com/MetaMask/metamask-extension/issues/31860
@@ -239,6 +250,12 @@ class UnlockPage extends Component<UnlockPageProps, UnlockPageState> {
 
   async componentDidMount() {
     const { isOnboardingCompleted, isSocialLoginFlow } = this.props;
+    try {
+      const passkeyAvailable = await hasPasskey();
+      this.setState({ hasPasskey: passkeyAvailable });
+    } catch {
+      this.setState({ hasPasskey: false });
+    }
     if (isOnboardingCompleted) {
       await this.props.checkIsSeedlessPasswordOutdated();
     } else if (isSocialLoginFlow) {
@@ -551,6 +568,108 @@ class UnlockPage extends Component<UnlockPageProps, UnlockPageState> {
     this.setState({ showResetPasswordModal: true });
   };
 
+  handleUnlockWithPasskey = async () => {
+    const { onSubmit } = this.props;
+    const { isLocked, isSubmitting, hasPasskey: hasPasskeyState } = this.state;
+    if (isLocked || isSubmitting || !hasPasskeyState) {
+      return;
+    }
+
+    this.setState({ error: null, passkeyUnlockInProgress: true });
+
+    try {
+      const data = await getPasskeyUnlockData();
+      if (!data) {
+        this.setState({
+          error: (this.context as UnlockPageContext).t('passkeyUnlockNoData'),
+          passkeyUnlockInProgress: false,
+        });
+        return;
+      }
+
+      const credentialIdBytes = base64UrlToArrayBuffer(data.credentialId);
+      const challenge = crypto.getRandomValues(new Uint8Array(32));
+
+      const getOptions: CredentialRequestOptions = {
+        publicKey: {
+          challenge,
+          allowCredentials: [
+            {
+              id: credentialIdBytes,
+              type: 'public-key',
+            },
+          ],
+          userVerification: 'required',
+          ...(data.derivationMethod === 'prf' &&
+            data.prfSalt && {
+              extensions: {
+                prf: {
+                  eval: {
+                    first: base64ToArrayBuffer(data.prfSalt),
+                  },
+                },
+              },
+            }),
+        },
+      };
+
+      const credential = await navigator.credentials.get(getOptions);
+      if (!credential || !(credential instanceof PublicKeyCredential)) {
+        this.setState({
+          error: (this.context as UnlockPageContext).t(
+            'passkeyUnlockUserCanceled',
+          ),
+          passkeyUnlockInProgress: false,
+        });
+        return;
+      }
+
+      const response = credential.response as AuthenticatorAssertionResponse;
+      const extResults = credential.getClientExtensionResults() as {
+        prf?: { results?: { first?: ArrayBuffer } };
+      };
+
+      let ikm: ArrayBuffer;
+      if (data.derivationMethod === 'prf' && extResults.prf?.results?.first) {
+        ikm = extResults.prf.results.first;
+      } else if (response.userHandle && response.userHandle.byteLength > 0) {
+        ikm = response.userHandle;
+      } else {
+        this.setState({
+          error: (this.context as UnlockPageContext).t(
+            'passkeyUnlockMissingData',
+          ),
+          passkeyUnlockInProgress: false,
+        });
+        return;
+      }
+
+      const key = await deriveKPasswordKey(ikm, credentialIdBytes);
+      const decryptedPassword = await decryptPassword(
+        data.encryptedPassword,
+        data.iv,
+        key,
+      );
+
+      await onSubmit(decryptedPassword);
+
+      (this.context as UnlockPageContext).trackEvent?.({
+        category: MetaMetricsEventCategory.Navigation,
+        event: MetaMetricsEventName.AppUnlocked,
+        properties: { method: 'passkey' },
+      });
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : (this.context as UnlockPageContext).t('passkeyUnlockFailed');
+      this.setState({
+        error: message,
+        passkeyUnlockInProgress: false,
+      });
+    } finally {
+      this.setState({ passkeyUnlockInProgress: false });
+    }
+  };
+
   onRestoreWallet = async () => {
     const { isSocialLoginFlow } = this.props;
 
@@ -709,6 +828,27 @@ class UnlockPage extends Component<UnlockPageProps, UnlockPageState> {
             >
               {this.context.t('unlock')}
             </Button>
+
+            {this.state.hasPasskey && (
+              <Button
+                variant={ButtonVariant.Secondary}
+                size={ButtonSize.Lg}
+                block
+                type="button"
+                data-testid="unlock-with-passkey"
+                disabled={
+                  isLocked ||
+                  this.state.isSubmitting ||
+                  this.state.passkeyUnlockInProgress
+                }
+                onClick={this.handleUnlockWithPasskey}
+                marginBottom={6}
+              >
+                {this.state.passkeyUnlockInProgress
+                  ? (this.context as UnlockPageContext).t('unlocking')
+                  : (this.context as UnlockPageContext).t('unlockWithPasskey')}
+              </Button>
+            )}
 
             <Button
               variant={ButtonVariant.Link}

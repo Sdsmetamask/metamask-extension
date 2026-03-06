@@ -103,7 +103,7 @@ export function isDevOrUatBuild() {
 export function loadShieldConfig(): ShieldEnvConfig {
   const buildType = process.env.METAMASK_BUILD_TYPE;
 
-  let buildTypeEnv: BuildType = BUILD_TYPE.main;
+  let buildTypeEnv: BuildType = BUILD_TYPE.uat;
   if (buildType === 'experimental') {
     buildTypeEnv = BUILD_TYPE.experimental;
   } else if (buildType === 'flask') {

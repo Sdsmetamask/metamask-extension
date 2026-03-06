@@ -59,7 +59,14 @@ import {
   handleSettingsRefs,
 } from '../../../helpers/utils/settings-search';
 
-import { updateDataDeletionTaskStatus } from '../../../store/actions';
+import {
+  updateDataDeletionTaskStatus,
+  hasPasskey,
+  setPasskeyData,
+  clearPasskeyData,
+  verifyPassword,
+} from '../../../store/actions';
+import { createPasskey } from '../../../../shared/lib/passkey';
 import ZENDESK_URLS from '../../../helpers/constants/zendesk-url';
 import { getIsSeedlessOnboardingFeatureEnabled } from '../../../../shared/modules/environment';
 import MetametricsToggle from './metametrics-toggle';
@@ -127,6 +134,11 @@ export default class SecurityTab extends PureComponent {
     showDataCollectionDisclaimer: false,
     ipfsToggle: this.props.ipfsGateway.length > 0,
     hasEmailMarketingConsentError: false,
+    hasPasskey: false,
+    showAddPasskeyModal: false,
+    addPasskeyPassword: '',
+    addPasskeyError: '',
+    addPasskeyInProgress: false,
   };
 
   settingsRefCounter = 0;
@@ -161,6 +173,12 @@ export default class SecurityTab extends PureComponent {
     handleSettingsRefs(t, t('securityAndPrivacy'), this.settingsRefs);
     if (this.props.metaMetricsDataDeletionId) {
       await updateDataDeletionTaskStatus();
+    }
+    try {
+      const passkeyAvailable = await hasPasskey();
+      this.setState({ hasPasskey: passkeyAvailable });
+    } catch {
+      this.setState({ hasPasskey: false });
     }
 
     if (this.props.socialLoginEnabled) {
@@ -345,6 +363,153 @@ export default class SecurityTab extends PureComponent {
             </div>
           </Box>
         </div>
+      </>
+    );
+  }
+
+  onAddPasskeyClick = () => {
+    this.setState({
+      showAddPasskeyModal: true,
+      addPasskeyPassword: '',
+      addPasskeyError: '',
+    });
+  };
+
+  onAddPasskeyModalClose = () => {
+    this.setState({
+      showAddPasskeyModal: false,
+      addPasskeyPassword: '',
+      addPasskeyError: '',
+      addPasskeyInProgress: false,
+    });
+  };
+
+  onAddPasskeySubmit = async () => {
+    const { addPasskeyPassword, addPasskeyInProgress } = this.state;
+    if (!addPasskeyPassword || addPasskeyInProgress) return;
+
+    this.setState({ addPasskeyError: '', addPasskeyInProgress: true });
+
+    try {
+      await verifyPassword(addPasskeyPassword);
+      const record = await createPasskey(addPasskeyPassword);
+      await setPasskeyData(record);
+      this.setState({
+        hasPasskey: true,
+        showAddPasskeyModal: false,
+        addPasskeyPassword: '',
+        addPasskeyError: '',
+        addPasskeyInProgress: false,
+      });
+    } catch (err) {
+      const message =
+        err?.message || this.context.t('passkeyUnlockFailed');
+      this.setState({
+        addPasskeyError: message,
+        addPasskeyInProgress: false,
+      });
+    }
+  };
+
+  onRemovePasskeyClick = async () => {
+    try {
+      await clearPasskeyData();
+      this.setState({ hasPasskey: false });
+    } catch (err) {
+      log.error('Failed to remove passkey', err);
+    }
+  };
+
+  renderPasskeySection() {
+    const { t } = this.context;
+    const {
+      hasPasskey: hasPasskeyState,
+      showAddPasskeyModal,
+      addPasskeyPassword,
+      addPasskeyError,
+      addPasskeyInProgress,
+    } = this.state;
+
+    return (
+      <>
+        <div className="settings-page__security-tab-sub-header">
+          {t('passkeySectionTitle')}
+        </div>
+        <div className="settings-page__content-padded">
+          <Box
+            className="settings-page__content-row"
+            display={Display.Flex}
+            flexDirection={FlexDirection.Column}
+            gap={4}
+          >
+            <div className="settings-page__content-item">
+              <div className="settings-page__content-description">
+                {t('passkeySectionDescription')}
+              </div>
+            </div>
+            <div className="settings-page__content-item-col">
+              {hasPasskeyState ? (
+                <Button
+                  data-testid="remove-passkey-button"
+                  size={ButtonSize.Lg}
+                  variant={ButtonVariant.Secondary}
+                  onClick={this.onRemovePasskeyClick}
+                >
+                  {t('removePasskey')}
+                </Button>
+              ) : (
+                <Button
+                  data-testid="add-passkey-button"
+                  size={ButtonSize.Lg}
+                  onClick={this.onAddPasskeyClick}
+                >
+                  {t('addPasskey')}
+                </Button>
+              )}
+            </div>
+          </Box>
+        </div>
+        {showAddPasskeyModal && (
+          <Popover
+            title={t('addPasskey')}
+            onClose={this.onAddPasskeyModalClose}
+            footer={
+              <Box display={Display.Flex} gap={2}>
+                <Button
+                  variant={ButtonVariant.Secondary}
+                  onClick={this.onAddPasskeyModalClose}
+                >
+                  {t('cancel')}
+                </Button>
+                <Button
+                  data-testid="add-passkey-submit"
+                  onClick={this.onAddPasskeySubmit}
+                  disabled={!addPasskeyPassword || addPasskeyInProgress}
+                >
+                  {addPasskeyInProgress ? t('unlocking') : t('createPasskey')}
+                </Button>
+              </Box>
+            }
+          >
+            <Box display={Display.Flex} flexDirection={FlexDirection.Column} gap={4}>
+              <Text variant={TextVariant.bodyMd}>
+                {t('addPasskeyModalDescription')}
+              </Text>
+              <TextField
+                type="password"
+                placeholder={t('enterYourPassword')}
+                value={addPasskeyPassword}
+                onChange={(e) =>
+                  this.setState({
+                    addPasskeyPassword: e.target.value,
+                    addPasskeyError: '',
+                  })
+                }
+                error={addPasskeyError}
+              />
+            </Box>
+          </Popover>
+        )}
       </>
     );
   }
@@ -1338,6 +1503,8 @@ export default class SecurityTab extends PureComponent {
         </span>
         {this.renderSeedWords()}
         {getIsSeedlessOnboardingFeatureEnabled() && this.renderChangePassword()}
+        {!getIsSeedlessOnboardingFeatureEnabled() &&
+          this.renderPasskeySection()}
         {this.renderSecurityAlertsToggle()}
         <span className="settings-page__security-tab-sub-header__bold">
           {this.context.t('privacy')}

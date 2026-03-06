@@ -8753,6 +8753,42 @@
     "message": "Unlock to reveal",
     "description": "Label used for Private Keys row on multichain account details page."
   },
+  "unlockWithPasskey": {
+    "message": "Unlock with Passkey"
+  },
+  "unlocking": {
+    "message": "Unlocking..."
+  },
+  "passkeyUnlockNoData": {
+    "message": "Passkey data not found. Unlock with password instead."
+  },
+  "passkeyUnlockUserCanceled": {
+    "message": "Passkey sign-in was cancelled."
+  },
+  "passkeyUnlockMissingData": {
+    "message": "Passkey response incomplete. Try password unlock."
+  },
+  "passkeyUnlockFailed": {
+    "message": "Passkey unlock failed. Try your password."
+  },
+  "passkeySectionTitle": {
+    "message": "Passkey"
+  },
+  "passkeySectionDescription": {
+    "message": "Use a passkey to unlock with your device biometrics or PIN."
+  },
+  "addPasskey": {
+    "message": "Add passkey"
+  },
+  "removePasskey": {
+    "message": "Remove passkey"
+  },
+  "createPasskey": {
+    "message": "Create passkey"
+  },
+  "addPasskeyModalDescription": {
+    "message": "Enter your password to create a passkey. You can then unlock with your device biometrics or PIN."
+  },
   "unpin": {
     "message": "Unpin"
   },

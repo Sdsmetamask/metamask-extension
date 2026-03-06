@@ -175,6 +175,12 @@ import {
   setStorageItem,
 } from '../../shared/lib/storage-helpers';
 import {
+  getPasskeyRecord,
+  setPasskeyRecord,
+  clearPasskeyRecord,
+  hasPasskeyRecord,
+} from './lib/passkey-storage';
+import {
   getTokenIdParam,
   fetchTokenBalance,
   fetchERC1155Balance,
@@ -2754,6 +2760,12 @@ export default class MetamaskController extends EventEmitter {
       // vault management
       submitPassword: this.submitPassword.bind(this),
       verifyPassword: this.verifyPassword.bind(this),
+
+      // passkey unlock (SRP accounts)
+      getPasskeyUnlockData: this.getPasskeyUnlockData.bind(this),
+      setPasskeyData: this.setPasskeyData.bind(this),
+      clearPasskeyData: this.clearPasskeyData.bind(this),
+      hasPasskey: this.hasPasskey.bind(this),
 
       // network management
       setActiveNetwork: async (id) => {
@@ -5365,6 +5377,41 @@ export default class MetamaskController extends EventEmitter {
    */
   async submitEncryptionKey(encryptionKey) {
     await this.submitPasswordOrEncryptionKey({ encryptionKey });
+  }
+
+  /**
+   * Returns passkey unlock record for use by unlock page (credentialId, derivationMethod, etc.).
+   * Used when vault is locked to support "Unlock with Passkey".
+   *
+   * @returns {Promise<object|null>} PasskeyRecord or null
+   */
+  async getPasskeyUnlockData() {
+    return getPasskeyRecord();
+  }
+
+  /**
+   * Stores passkey record after creation. Single passkey per account; overwrites existing.
+   *
+   * @param {object} record - PasskeyRecord
+   */
+  async setPasskeyData(record) {
+    await setPasskeyRecord(record);
+  }
+
+  /**
+   * Removes passkey record (e.g. user removes passkey from Settings).
+   */
+  async clearPasskeyData() {
+    await clearPasskeyRecord();
+  }
+
+  /**
+   * Returns true if a passkey is configured (for showing "Unlock with Passkey").
+   *
+   * @returns {Promise<boolean>}
+   */
+  async hasPasskey() {
+    return hasPasskeyRecord();
   }
 
   /**

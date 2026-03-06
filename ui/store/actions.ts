@@ -1156,6 +1156,38 @@ export function submitPassword(password: string): Promise<void> {
   return submitRequestToBackground('submitPassword', [password]);
 }
 
+/** Passkey unlock: get stored record for credential get + decrypt (used on unlock page). */
+export function getPasskeyUnlockData(): Promise<{
+  credentialId: string;
+  derivationMethod: 'prf' | 'userHandle';
+  encryptedPassword: string;
+  iv: string;
+  prfSalt?: string;
+} | null> {
+  return submitRequestToBackground('getPasskeyUnlockData', []);
+}
+
+/** Passkey: store record after creation (single passkey per account). */
+export function setPasskeyData(record: {
+  credentialId: string;
+  derivationMethod: 'prf' | 'userHandle';
+  encryptedPassword: string;
+  iv: string;
+  prfSalt?: string;
+}): Promise<void> {
+  return submitRequestToBackground('setPasskeyData', [record]);
+}
+
+/** Passkey: remove stored record. */
+export function clearPasskeyData(): Promise<void> {
+  return submitRequestToBackground('clearPasskeyData', []);
+}
+
+/** Passkey: whether a passkey is configured (for showing "Unlock with Passkey"). */
+export function hasPasskey(): Promise<boolean> {
+  return submitRequestToBackground<boolean>('hasPasskey', []);
+}
+
 /**
  * Creates a seed phrase backup in the metadata store for seedless onboarding flow.
  *
