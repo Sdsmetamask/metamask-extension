@@ -108,9 +108,9 @@ describe('buildBundleSizeDiffSection', () => {
     expect(result).toContain('background:');
     expect(result).toContain('ui:');
     expect(result).toContain('common:');
-    expect(result).toContain('other:');
-    expect(result).toContain('contentScripts:');
-    expect(result).toContain('zip:');
+    expect(result).toContain('other: n/a');
+    expect(result).toContain('contentScripts: n/a');
+    expect(result).toContain('zip: n/a');
   });
 
   it('shows a warning when the background bundle increases beyond the threshold', async () => {
@@ -197,7 +197,7 @@ describe('buildBundleSizeDiffSection', () => {
     ).rejects.toThrow('Failed to fetch devBundleSizeStats');
   });
 
-  it('uses 0 for dev sizes when the merge base hash is not in the data', async () => {
+  it('uses n/a when the merge base hash is not in the data', async () => {
     mockFetch
       .mockResolvedValueOnce({
         ok: true,
@@ -211,5 +211,13 @@ describe('buildBundleSizeDiffSection', () => {
     const result = await buildBundleSizeDiffSection(artifacts, 'unknown-hash');
 
     expect(result).toContain('Bundle size diffs');
+    expect(result).toContain('background: n/a');
+    expect(result).toContain('ui: n/a');
+    expect(result).toContain('common: n/a');
+    expect(result).toContain('other: n/a');
+    expect(result).toContain('contentScripts: n/a');
+    expect(result).toContain('zip: n/a');
+    expect(result).not.toContain('Warning!');
+    expect(result).not.toContain('Bundle size reduced!');
   });
 });

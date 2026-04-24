@@ -85,12 +85,25 @@ export async function buildBundleSizeDiffSection(
   ] as const;
 
   const getDevSize = (part: string) =>
-    devBundleSizeStats[mergeBaseCommitHash]?.[part] ?? 0;
-  const getDiff = (part: string) => prBundleSizeStats[part] - getDevSize(part);
+    devBundleSizeStats[mergeBaseCommitHash]?.[part];
+  const getDiff = (part: string) => {
+    const devSize = getDevSize(part);
+    return devSize === undefined
+      ? undefined
+      : prBundleSizeStats[part] - devSize;
+  };
 
   const sizeDiffRows = bundleParts.map((part) => {
-    return `${part}: ${getHumanReadableSize(getDiff(part))} (${getPercentageChange(
-      getDevSize(part),
+    const devSize = getDevSize(part);
+
+    if (devSize === undefined) {
+      return `${part}: n/a`;
+    }
+
+    const diff = prBundleSizeStats[part] - devSize;
+
+    return `${part}: ${getHumanReadableSize(diff)} (${getPercentageChange(
+      devSize,
       prBundleSizeStats[part],
     )}%)`;
   });
@@ -99,19 +112,24 @@ export async function buildBundleSizeDiffSection(
     .map((row) => `<li>${row}</li>`)
     .join('\n')}</ul>`;
 
-  const sizeDiffBackground = getDiff('background') + getDiff('common');
-  const sizeDiffUi = getDiff('ui') + getDiff('common');
+  const getCombinedDiff = (...parts: string[]) => {
+    const diffs = parts.map(getDiff);
+
+    return diffs.every((diff): diff is number => diff !== undefined)
+      ? diffs.reduce((sum, diff) => sum + diff, 0)
+      : undefined;
+  };
+
+  const sizeDiffBackground = getCombinedDiff('background', 'common');
+  const sizeDiffUi = getCombinedDiff('ui', 'common');
+  const warningDiffs = [sizeDiffBackground, sizeDiffUi].filter(
+    (diff): diff is number => diff !== undefined,
+  );
 
   let sizeDiffWarning: string | undefined;
-  if (
-    sizeDiffBackground > BUNDLE_SIZE_THRESHOLD ||
-    sizeDiffUi > BUNDLE_SIZE_THRESHOLD
-  ) {
+  if (warningDiffs.some((diff) => diff > BUNDLE_SIZE_THRESHOLD)) {
     sizeDiffWarning = `🚨 Warning! Bundle size has increased!`;
-  } else if (
-    sizeDiffBackground < -BUNDLE_SIZE_THRESHOLD ||
-    sizeDiffUi < -BUNDLE_SIZE_THRESHOLD
-  ) {
+  } else if (warningDiffs.some((diff) => diff < -BUNDLE_SIZE_THRESHOLD)) {
     sizeDiffWarning = `🚀 Bundle size reduced!`;
   }
 
