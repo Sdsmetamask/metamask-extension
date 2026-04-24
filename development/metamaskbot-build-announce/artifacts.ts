@@ -43,7 +43,7 @@ export function getArtifactLinks(
       label: 'Bundle Size Data',
     },
     bundleSizeStats: {
-      url: `${hostUrl}/bundle-size/chrome.json`,
+      url: `${hostUrl}/bundle-size/chrome.debug.json`,
       label: 'Bundle Size Stats',
     },
     interactionStats: {
