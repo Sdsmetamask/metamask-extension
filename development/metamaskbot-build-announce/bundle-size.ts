@@ -210,10 +210,7 @@ async function fetchOptionalStoredBundleSizeData(
   url: string,
 ): Promise<StoredBundleSizeData | null> {
   try {
-    return (await fetchJson(
-      url,
-      'devBundleSizeStats',
-    )) as StoredBundleSizeData;
+    return (await fetchJson(url, 'devBundleSizeStats')) as StoredBundleSizeData;
   } catch (error) {
     console.log(`Skipping devBundleSizeStats: ${String(error)}`);
     return null;
