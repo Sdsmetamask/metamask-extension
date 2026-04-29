@@ -160,6 +160,24 @@
     "yarn-binary:download": "corepack pack -o .yarn/yarn-corepack.tgz",
     "yarn-binary:hydrate": "corepack hydrate .yarn/yarn-corepack.tgz --activate"
   },
+  "previewBuilds": {
+    "@metamask/transaction-controller": {
+      "type": "breaking",
+      "previewVersion": "65.0.0-preview-156c8ccf7"
+    },
+    "@metamask/transaction-pay-controller": {
+      "type": "non-breaking",
+      "previewVersion": "20.0.1-preview-156c8ccf7"
+    },
+    "@metamask/bridge-status-controller": {
+      "type": "non-breaking",
+      "previewVersion": "71.1.0-preview-156c8ccf7"
+    },
+    "@metamask/eip-5792-middleware": {
+      "type": "non-breaking",
+      "previewVersion": "3.0.3-preview-156c8ccf7"
+    }
+  },
   "resolutions": {
     "follow-redirects": "^1.16.0",
     "@unrs/resolver-binding-wasm32-wasi": "npm:npm-empty-package@1.0.0",
@@ -373,7 +391,7 @@
     "@metamask/logo": "^4.0.0",
     "@metamask/message-manager": "^14.0.0",
     "@metamask/message-signing-snap": "1.1.4",
-    "@metamask/messenger": "^1.1.1",
+    "@metamask/messenger": "^1.2.0",
     "@metamask/metamask-eth-abis": "^3.1.1",
     "@metamask/multichain-account-service": "^8.0.1",
     "@metamask/multichain-api-client": "^0.10.1",

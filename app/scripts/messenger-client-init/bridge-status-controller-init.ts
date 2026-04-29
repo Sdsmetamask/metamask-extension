@@ -48,11 +48,15 @@ export const BridgeStatusControllerInit: MessengerClientInitFunction<
             isGasFeeSponsored: false,
             isGasFeeIncluded: false,
             disable7702: true,
+            isInternal: true,
           },
           ...rest,
         );
       }
-      return transactionController.addTransactionBatch(request, ...rest);
+      return transactionController.addTransactionBatch(
+        { ...request, isInternal: true },
+        ...rest,
+      );
     },
 
     config: {

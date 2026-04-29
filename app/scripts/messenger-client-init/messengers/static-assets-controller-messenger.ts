@@ -1,7 +1,6 @@
 import type { ControllerGetStateAction } from '@metamask/base-controller';
 import { Messenger, MessengerEvents } from '@metamask/messenger';
 import type { NetworkControllerFindNetworkClientIdByChainIdAction } from '@metamask/network-controller';
-import { AccountsControllerGetSelectedAccountAction } from '@metamask/accounts-controller';
 import {
   TokensControllerState,
   TokensControllerAddTokensAction,
@@ -9,7 +8,10 @@ import {
 import { RemoteFeatureFlagControllerGetStateAction } from '@metamask/remote-feature-flag-controller';
 
 import { RootMessenger } from '../../lib/messenger';
-import { type StaticAssetsControllerMessenger as StaticAssetsControllerMessengerType } from '../../controllers/static-assets-controller';
+import {
+  type StaticAssetsControllerMessenger as StaticAssetsControllerMessengerType,
+  type StaticAssetsControllerActions,
+} from '../../controllers/static-assets-controller';
 
 type TokensControllerGetStateAction = ControllerGetStateAction<
   'TokensController',
@@ -17,7 +19,7 @@ type TokensControllerGetStateAction = ControllerGetStateAction<
 >;
 
 type AllowedActions =
-  | AccountsControllerGetSelectedAccountAction
+  | StaticAssetsControllerActions
   | NetworkControllerFindNetworkClientIdByChainIdAction
   | TokensControllerGetStateAction
   | TokensControllerAddTokensAction;
