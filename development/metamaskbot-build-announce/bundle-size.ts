@@ -156,6 +156,7 @@ function getRowStatus({
 
 function buildUnavailableComparisonContent(
   currentSizes: Record<BundlePart, number>,
+  currentUnzippedSize: number,
   currentZipSize: number,
 ): string {
   const currentSizeRows = bundleParts.map((part) =>
@@ -165,6 +166,10 @@ function buildUnavailableComparisonContent(
     }),
   );
   currentSizeRows.push(
+    buildSizeRow({
+      label: 'unzipped',
+      currentSize: currentUnzippedSize,
+    }),
     buildSizeRow({
       label: 'zip',
       currentSize: currentZipSize,
@@ -233,6 +238,7 @@ function buildBundleSizeSection({
   }
 
   const currentSizes = getBundlePartSizes(currentSummary);
+  const currentUnzippedSize = currentSummary.unzipped ?? 0;
   const currentZipSize = currentSummary.zip ?? 0;
   const baselineSummary = getBaselineSummary(
     storedBundleSizeData,
@@ -242,7 +248,11 @@ function buildBundleSizeSection({
   if (!baselineSummary) {
     return buildCollapsibleSection(
       'Bundle Size Diffs',
-      buildUnavailableComparisonContent(currentSizes, currentZipSize),
+      buildUnavailableComparisonContent(
+        currentSizes,
+        currentUnzippedSize,
+        currentZipSize,
+      ),
     );
   }
 
@@ -258,6 +268,15 @@ function buildBundleSizeSection({
     }),
   );
   sizeDiffRows.push(
+    buildSizeRow({
+      label: 'unzipped',
+      currentSize: currentUnzippedSize,
+      baselineSize: baselineSummary.unzipped,
+      status: getRowStatus({
+        currentSize: currentUnzippedSize,
+        baselineSize: baselineSummary.unzipped,
+      }),
+    }),
     buildSizeRow({
       label: 'zip',
       currentSize: currentZipSize,
