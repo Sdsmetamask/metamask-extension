@@ -826,6 +826,10 @@
       "fcmToken": "",
       "isPushEnabled": true
     },
+    "ComplianceController": {
+      "lastCheckedAt": null,
+      "walletComplianceStatusMap": {}
+    },
     "OnboardingController": {
       "completedOnboarding": true,
       "firstTimeFlowType": "import",

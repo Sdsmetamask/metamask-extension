@@ -143,6 +143,10 @@ export const SENTRY_BACKGROUND_STATE: SentryBackgroundControllerMasks = {
   ConnectivityController: {
     connectivityStatus: true,
   },
+  ComplianceController: {
+    walletComplianceStatusMap: false,
+    lastCheckedAt: false,
+  },
   CronjobController: {
     events: false,
   },
