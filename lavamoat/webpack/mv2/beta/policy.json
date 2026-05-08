@@ -1024,8 +1024,7 @@
       "packages": {
         "@metamask/base-controller": true,
         "@metamask/controller-utils": true,
-        "@metamask/superstruct": true,
-        "reselect": true
+        "@metamask/superstruct": true
       }
     },
     "@metamask/connectivity-controller": {
