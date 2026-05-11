@@ -1206,7 +1206,7 @@ export async function loadStateFromPersistence(backup) {
  * @param {number} [frameId] - The frame ID from chrome.runtime.MessageSender (0 = top-level, >0 = iframe)
  */
 function emitDappViewedMetricEvent(origin, mainFrameOrigin, frameId) {
-  const { metaMetricsId } = controller.metaMetricsController.state;
+  const { metaMetricsId } = controller.getState();
   if (!shouldEmitDappViewedEvent(metaMetricsId)) {
     return;
   }
@@ -1300,11 +1300,10 @@ function trackDappView(remotePort) {
  * @param {string} environmentType - The environment type where the app is opening
  */
 function emitAppOpenedMetricEvent(environmentType) {
-  const { metaMetricsId, participateInMetaMetrics } =
-    controller.metaMetricsController.state;
+  const { participateInMetaMetrics } = controller.getState();
 
   // Skip if user hasn't opted into metrics
-  if (metaMetricsId === null && !participateInMetaMetrics) {
+  if (!participateInMetaMetrics) {
     return;
   }
 

@@ -841,6 +841,12 @@
         "@metamask/controller-utils": true
       }
     },
+    "@metamask/analytics-controller": {
+      "packages": {
+        "@metamask/base-controller": true,
+        "@metamask/utils": true
+      }
+    },
     "@metamask/announcement-controller": {
       "packages": {
         "@metamask/base-controller": true

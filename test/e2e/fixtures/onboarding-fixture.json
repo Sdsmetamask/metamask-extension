@@ -183,6 +183,10 @@
     "LoggingController": {
       "logs": {}
     },
+    "AnalyticsController": {
+      "analyticsId": "897e4491-7257-4908-ae83-48013df43d80",
+      "optedIn": false
+    },
     "MetaMetricsController": {
       "dataCollectionForMarketing": null,
       "eventsBeforeMetricsOptIn": [
@@ -195,8 +199,7 @@
       "fragments": {},
       "latestNonAnonymousEventTimestamp": 0,
       "marketingCampaignCookieId": null,
-      "metaMetricsId": null,
-      "participateInMetaMetrics": null,
+      "completedMetaMetricsOnboarding": false,
       "segmentApiCalls": {},
       "tracesBeforeMetricsOptIn": [
         {
@@ -2259,6 +2262,6 @@
   },
   "meta": {
     "storageKind": "split",
-    "version": 206
+    "version": 207
   }
 }

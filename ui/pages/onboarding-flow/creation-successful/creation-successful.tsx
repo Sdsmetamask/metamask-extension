@@ -310,9 +310,6 @@ export default function CreationSuccessful() {
             account_type: accountType,
           },
         },
-        {
-          isOptIn: !participateInMetaMetrics, // Force the event to be tracked even if participateInMetaMetrics is false
-        },
       );
     }
 

@@ -8,15 +8,18 @@ import {
   size,
   sum,
 } from 'lodash';
-import { keccak256 } from 'ethereum-cryptography/keccak';
 import { v4 as uuidv4 } from 'uuid';
 import { NameType } from '@metamask/name-controller';
 import {
-  bytesToHex,
   getErrorMessage,
   isErrorWithMessage,
   isErrorWithStack,
 } from '@metamask/utils';
+import type {
+  AnalyticsControllerActions,
+  AnalyticsControllerState,
+  AnalyticsUserTraits,
+} from '@metamask/analytics-controller';
 import type {
   NetworkClientId,
   NetworkControllerGetNetworkClientByIdAction,
@@ -40,7 +43,6 @@ import {
   PLATFORM_FIREFOX,
 } from '../../../shared/constants/app';
 import {
-  METAMETRICS_ANONYMOUS_ID,
   METAMETRICS_BACKGROUND_PAGE_OBJECT,
   MetaMetricsEventCategory,
   MetaMetricsEventName,
@@ -54,7 +56,6 @@ import type {
   MetaMetricsEventPayload,
   MetaMetricsEventOptions,
   MetaMetricsPagePayload,
-  MetaMetricsPageOptions,
   MetaMetricsPageObject,
   MetaMetricsReferrerObject,
 } from '../../../shared/constants/metametrics';
@@ -70,11 +71,7 @@ import {
   getPlatform,
   isValidDate,
 } from '../lib/util';
-import {
-  AnonymousTransactionMetaMetricsEvent,
-  TransactionMetaMetricsEvent,
-} from '../../../shared/constants/transaction';
-import type { SegmentClient } from '../lib/segment';
+import { TransactionMetaMetricsEvent } from '../../../shared/constants/transaction';
 import {
   trace,
   endTrace,
@@ -98,30 +95,15 @@ import type {
   PreferencesControllerStateChangeEvent,
 } from './preferences-controller';
 import { MetaMetricsControllerMethodActions } from './metametrics-controller-method-action-types';
+import {
+  ANONYMOUS_EVENT_PROPERTY,
+  type AnalyticsInvocationOptions,
+} from './analytics/platform-adapter';
 
 // Unique name for the controller
 const controllerName = 'MetaMetricsController';
 
 const EXTENSION_UNINSTALL_URL = 'https://metamask.io/uninstalled';
-
-export const overrideAnonymousEventNames = {
-  [TransactionMetaMetricsEvent.added]:
-    AnonymousTransactionMetaMetricsEvent.added,
-  [TransactionMetaMetricsEvent.approved]:
-    AnonymousTransactionMetaMetricsEvent.approved,
-  [TransactionMetaMetricsEvent.finalized]:
-    AnonymousTransactionMetaMetricsEvent.finalized,
-  [TransactionMetaMetricsEvent.rejected]:
-    AnonymousTransactionMetaMetricsEvent.rejected,
-  [TransactionMetaMetricsEvent.submitted]:
-    AnonymousTransactionMetaMetricsEvent.submitted,
-  [MetaMetricsEventName.SignatureRequested]:
-    MetaMetricsEventName.SignatureRequestedAnon,
-  [MetaMetricsEventName.SignatureApproved]:
-    MetaMetricsEventName.SignatureApprovedAnon,
-  [MetaMetricsEventName.SignatureRejected]:
-    MetaMetricsEventName.SignatureRejectedAnon,
-} as const;
 
 const defaultCaptureException = (err: unknown) => {
   // throw error on clean stack so its captured by platform integrations (eg sentry)
@@ -183,7 +165,6 @@ export type MetaMaskState = Pick<
   | 'allNfts'
   | 'allTokens'
   | 'theme'
-  | 'participateInMetaMetrics'
   | 'dataCollectionForMarketing'
   | 'useNftDetection'
   | 'openSeaEnabled'
@@ -205,6 +186,14 @@ export type MetaMaskState = Pick<
     | 'showNativeTokenAsMainBalance'
     | 'tokenSortConfig'
   >;
+} & {
+  // TODO: Remove `participateInMetaMetrics` / `metaMetricsId` here once the codebase and
+  // `FlattenedBackgroundStateProxy` use `completedMetaMetricsOnboarding`, `optedIn`, and
+  // `analyticsId` as the source of truth (and `MetamaskController.getState()` stops injecting the legacy
+  // fields). Update `_buildUserTraitsObject` and any other `MetaMaskState` consumers accordingly.
+  /** Populated by `MetamaskController.getState()` from analytics + metrics prompt completion. */
+  participateInMetaMetrics: boolean | null;
+  metaMetricsId: string | null;
 };
 
 /**
@@ -215,13 +204,7 @@ export type MetaMaskState = Pick<
  * the `anonymous` flag.
  */
 const controllerMetadata: StateMetadata<MetaMetricsControllerState> = {
-  metaMetricsId: {
-    includeInStateLogs: true,
-    persist: true,
-    includeInDebugSnapshot: true,
-    usedInUi: true,
-  },
-  participateInMetaMetrics: {
+  completedMetaMetricsOnboarding: {
     includeInStateLogs: true,
     persist: true,
     includeInDebugSnapshot: true,
@@ -280,9 +263,7 @@ const controllerMetadata: StateMetadata<MetaMetricsControllerState> = {
 /**
  * The state that MetaMetricsController stores.
  *
- * @property metaMetricsId - The user's metaMetricsId that will be attached to all non-anonymized event payloads
- * @property participateInMetaMetrics - The user's preference for participating in the MetaMetrics analytics program.
- * This setting controls whether or not events are tracked
+ * @property completedMetaMetricsOnboarding - Whether the user has completed the metrics participation prompt (onboarding/settings).
  * @property latestNonAnonymousEventTimestamp - The timestamp at which last non anonymous event is tracked.
  * @property fragments - Object keyed by UUID with stored fragments as values.
  * @property eventsBeforeMetricsOptIn - Array of queued events added before a user opts into metrics.
@@ -292,9 +273,16 @@ const controllerMetadata: StateMetadata<MetaMetricsControllerState> = {
  * @property marketingCampaignCookieId - The marketing campaign cookie id.
  * @property segmentApiCalls - Object keyed by messageId with segment event type and payload as values.
  */
+/**
+ * Shape routed to `#submitSegmentAPICall`. Matches Segment payloads plus optional
+ * `sensitiveProperties` for AnalyticsController only (not Segment fields).
+ */
+type SegmentSubmissionPayload = Partial<SegmentEventPayload> & {
+  sensitiveProperties?: Record<string, Json>;
+};
+
 export type MetaMetricsControllerState = {
-  metaMetricsId: string | null;
-  participateInMetaMetrics: boolean | null;
+  completedMetaMetricsOnboarding: boolean;
   latestNonAnonymousEventTimestamp: number;
   fragments: Record<string, MetaMetricsEventFragment>;
   eventsBeforeMetricsOptIn: MetaMetricsEventPayload[];
@@ -306,7 +294,7 @@ export type MetaMetricsControllerState = {
     string,
     {
       eventType: SegmentEventType;
-      payload: SegmentEventPayload;
+      payload: SegmentSubmissionPayload & { timestamp: string };
     }
   >;
 };
@@ -343,7 +331,8 @@ export type AllowedActions =
   | PreferencesControllerGetStateAction
   | NetworkControllerGetStateAction
   | NetworkControllerGetNetworkClientByIdAction
-  | RemoteFeatureFlagControllerGetStateAction;
+  | RemoteFeatureFlagControllerGetStateAction
+  | AnalyticsControllerActions;
 
 /**
  * Events that this controller is allowed to subscribe.
@@ -366,7 +355,6 @@ type CaptureException = typeof captureException | ((err: unknown) => void);
 export type MetaMetricsControllerOptions = {
   state?: Partial<MetaMetricsControllerState>;
   messenger: MetaMetricsControllerMessenger;
-  segment: SegmentClient;
   version: string;
   environment: string;
   extension: Browser;
@@ -378,8 +366,7 @@ export type MetaMetricsControllerOptions = {
  */
 export const getDefaultMetaMetricsControllerState =
   (): MetaMetricsControllerState => ({
-    participateInMetaMetrics: null,
-    metaMetricsId: null,
+    completedMetaMetricsOnboarding: false,
     dataCollectionForMarketing: null,
     marketingCampaignCookieId: null,
     latestNonAnonymousEventTimestamp: 0,
@@ -401,7 +388,6 @@ const MESSENGER_EXPOSED_METHODS = [
   'deleteEventFragment',
   'finalizeAbandonedFragments',
   'finalizeEventFragment',
-  'generateMetaMetricsId',
   'getEventFragmentById',
   'getMetaMetricsId',
   'handleMetaMaskStateUpdate',
@@ -438,14 +424,14 @@ export class MetaMetricsController extends BaseController<
 
   #environment: MetaMetricsControllerOptions['environment'];
 
-  #segment: MetaMetricsControllerOptions['segment'];
+  #analyticsGetState(): AnalyticsControllerState {
+    return this.messenger.call('AnalyticsController:getState');
+  }
 
   /**
    * @param options
    * @param options.state - Initial controller state.
    * @param options.messenger - Messenger used to communicate with BaseV2 controller.
-   * @param options.segment - an instance of analytics for tracking
-   * events that conform to the new MetaMetrics tracking plan.
    * @param options.version - The version of the extension
    * @param options.environment - The environment the extension is running in
    * @param options.extension - webextension-polyfill
@@ -454,7 +440,6 @@ export class MetaMetricsController extends BaseController<
   constructor({
     state = {},
     messenger,
-    segment,
     version,
     environment,
     extension,
@@ -508,7 +493,6 @@ export class MetaMetricsController extends BaseController<
         this.chainId = this.#getCurrentChainId(selectedNetworkClientId);
       },
     );
-    this.#segment = segment;
 
     // Track abandoned fragments that weren't properly cleaned up.
     // Abandoned fragments are those that were stored in persistent memory
@@ -602,17 +586,6 @@ export class MetaMetricsController extends BaseController<
     });
   }
 
-  generateMetaMetricsId(): string {
-    return bytesToHex(
-      keccak256(
-        Buffer.from(
-          String(Date.now()) +
-            String(Math.round(Math.random() * Number.MAX_SAFE_INTEGER)),
-        ),
-      ),
-    );
-  }
-
   /**
    * Create an event fragment in state and returns the event fragment object.
    *
@@ -665,8 +638,13 @@ export class MetaMetricsController extends BaseController<
         }
       : {};
 
+    const mergedFragment = merge(
+      {},
+      additionalFragmentProps,
+      fragment,
+    ) as MetaMetricsEventFragment;
     this.update((state) => {
-      state.fragments[id] = merge({}, additionalFragmentProps, fragment);
+      Object.assign(state.fragments, { [id]: mergedFragment });
     });
 
     if (fragment.initialEvent) {
@@ -735,26 +713,32 @@ export class MetaMetricsController extends BaseController<
     const createIfNotFound = !fragment && id.includes('transaction-submitted-');
 
     if (createIfNotFound) {
+      const newFragment: MetaMetricsEventFragment = {
+        canDeleteIfAbandoned: true,
+        category: MetaMetricsEventCategory.Transactions,
+        successEvent: TransactionMetaMetricsEvent.finalized,
+        id,
+        ...payload,
+        lastUpdated: Date.now(),
+      };
       this.update((state) => {
-        state.fragments[id] = {
-          canDeleteIfAbandoned: true,
-          category: MetaMetricsEventCategory.Transactions,
-          successEvent: TransactionMetaMetricsEvent.finalized,
-          id,
-          ...payload,
-          lastUpdated: Date.now(),
-        };
+        Object.assign(state.fragments, { [id]: newFragment });
       });
       return;
     } else if (!fragment) {
       throw new Error(`Event fragment with id ${id} does not exist.`);
     }
 
-    this.update((state) => {
-      state.fragments[id] = merge(state.fragments[id], {
+    const updatedFragment = merge(
+      {} as MetaMetricsEventFragment,
+      fragment,
+      {
         ...payload,
         lastUpdated: Date.now(),
-      });
+      },
+    ) as MetaMetricsEventFragment;
+    this.update((state) => {
+      Object.assign(state.fragments, { [id]: updatedFragment });
     });
   }
 
@@ -834,8 +818,8 @@ export class MetaMetricsController extends BaseController<
    * @param userTraits
    */
   identify(userTraits: Partial<MetaMetricsUserTraits>): void {
-    const { metaMetricsId, participateInMetaMetrics } = this.state;
-    if (!participateInMetaMetrics || !metaMetricsId || !userTraits) {
+    const { analyticsId, optedIn } = this.#analyticsGetState();
+    if (!optedIn || !analyticsId || !userTraits) {
       return;
     }
     if (typeof userTraits !== 'object') {
@@ -846,6 +830,10 @@ export class MetaMetricsController extends BaseController<
     }
 
     const allValidTraits = this.#buildValidTraits(userTraits);
+
+    if (Object.keys(allValidTraits).length === 0) {
+      return;
+    }
 
     this.#identify(allValidTraits);
   }
@@ -890,15 +878,17 @@ export class MetaMetricsController extends BaseController<
   async setParticipateInMetaMetrics(
     participateInMetaMetrics: boolean | null,
   ): Promise<string | null> {
-    const { metaMetricsId: existingMetaMetricsId } = this.state;
+    const analyticsId = this.getMetaMetricsId();
 
-    // regardless of the Opt In/Out status, we want to generate metaMetricsId if it doesn't exist
-    // this is to assign the id to the `Metrics Opt Out` event (in which participateInMetaMetrics is null/false)
-    const metaMetricsId = existingMetaMetricsId ?? this.generateMetaMetricsId();
+    if (participateInMetaMetrics === true) {
+      this.messenger.call('AnalyticsController:optIn');
+    } else {
+      this.messenger.call('AnalyticsController:optOut');
+    }
 
     this.update((state) => {
-      state.participateInMetaMetrics = participateInMetaMetrics;
-      state.metaMetricsId = metaMetricsId;
+      state.completedMetaMetricsOnboarding =
+        participateInMetaMetrics !== null;
     });
 
     if (participateInMetaMetrics) {
@@ -920,19 +910,19 @@ export class MetaMetricsController extends BaseController<
     if (
       isMain() &&
       this.#environment !== ENVIRONMENT.DEVELOPMENT &&
-      metaMetricsId !== null &&
       participateInMetaMetrics !== null
     ) {
-      this.updateExtensionUninstallUrl(participateInMetaMetrics, metaMetricsId);
+      this.updateExtensionUninstallUrl(
+        participateInMetaMetrics === true,
+        analyticsId,
+      );
     }
 
-    return metaMetricsId;
+    return analyticsId;
   }
 
-  setDataCollectionForMarketing(
-    dataCollectionForMarketing: boolean,
-  ): MetaMetricsControllerState['metaMetricsId'] {
-    const { metaMetricsId } = this.state;
+  setDataCollectionForMarketing(dataCollectionForMarketing: boolean): string {
+    const { analyticsId } = this.#analyticsGetState();
 
     this.update((state) => {
       state.dataCollectionForMarketing = dataCollectionForMarketing;
@@ -942,7 +932,7 @@ export class MetaMetricsController extends BaseController<
       this.setMarketingCampaignCookieId(null);
     }
 
-    return metaMetricsId;
+    return analyticsId;
   }
 
   setMarketingCampaignCookieId(marketingCampaignCookieId: string | null): void {
@@ -955,32 +945,18 @@ export class MetaMetricsController extends BaseController<
    * track a page view with Segment
    *
    * @param payload - details of the page viewed.
-   * @param options - options for handling the page view.
    */
-  trackPage(
-    payload: MetaMetricsPagePayload,
-    options?: MetaMetricsPageOptions,
-  ): void {
+  trackPage(payload: MetaMetricsPagePayload): void {
     try {
-      if (this.state.participateInMetaMetrics === false) {
-        return;
-      }
-
-      if (
-        this.state.participateInMetaMetrics === null &&
-        !options?.isOptInPath
-      ) {
+      const { optedIn } = this.#analyticsGetState();
+      if (!optedIn) {
         return;
       }
 
       const { name, params, environmentType, page, referrer, actionId } =
         payload;
-      const { metaMetricsId } = this.state;
-      const idTrait = metaMetricsId ? 'userId' : 'anonymousId';
-      const idValue = metaMetricsId ?? METAMETRICS_ANONYMOUS_ID;
       this.#submitSegmentAPICall('page', {
         messageId: buildUniqueMessageId({ actionId }),
-        [idTrait]: idValue,
         name,
         properties: {
           params,
@@ -1018,9 +994,7 @@ export class MetaMetricsController extends BaseController<
 
   /**
    * submits (or queues for submission) a metametrics event, performing necessary payload manipulation and
-   * routing the event to the appropriate segment source. Will split events
-   * with sensitiveProperties into two events, tracking the sensitiveProperties
-   * with the anonymousId only.
+   * routing the event to the appropriate segment source.
    *
    * @param payload - details of the event
    * @param options - options for handling/routing the event
@@ -1038,16 +1012,9 @@ export class MetaMetricsController extends BaseController<
       return;
     }
 
-    const { participateInMetaMetrics, metaMetricsId } = this.state;
-    if (!participateInMetaMetrics && !options?.isOptIn) {
+    const { optedIn } = this.#analyticsGetState();
+    if (!optedIn && payload.event !== MetaMetricsEventName.MetricsOptOut) {
       return;
-    }
-
-    const isMetricsOptOutEvent =
-      payload.event === MetaMetricsEventName.MetricsOptOut;
-    if (isMetricsOptOutEvent && options?.isOptIn) {
-      // For the `Metrics Opt Out` event, we want to track it with the user's `metaMetricsId`
-      options.metaMetricsId = metaMetricsId ?? undefined;
     }
 
     let identifiedPayload = payload;
@@ -1080,51 +1047,16 @@ export class MetaMetricsController extends BaseController<
       }
     }
 
-    // We might track multiple events if sensitiveProperties is included, this array will hold
-    // the promises returned from this._track.
-    const events = [];
-
-    if (payload.sensitiveProperties) {
-      // sensitiveProperties will only be tracked using the anonymousId property and generic id
-      // If the event options already specify to exclude the metaMetricsId we throw an error as
-      // a signal to the developer that the event was implemented incorrectly
-      if (options?.excludeMetaMetricsId === true) {
-        throw new Error(
-          'sensitiveProperties was specified in an event payload that also set the excludeMetaMetricsId flag',
-        );
-      }
-
-      // change anonymous event names
-      const anonymousEventName =
-        // @ts-expect-error This property may not exist. We check for it below.
-        overrideAnonymousEventNames[`${payload.event}`];
-      const anonymousPayload = {
-        ...normalizedPayload,
-        event: anonymousEventName ?? payload.event,
-      };
-
-      const combinedProperties = merge(
-        { ...anonymousPayload.sensitiveProperties },
-        { ...anonymousPayload.properties },
-      );
-
-      events.push(
-        this.#track(
-          this.#buildEventPayload({
-            ...anonymousPayload,
-            properties: combinedProperties,
-            isDuplicateAnonymizedEvent: true,
-          }),
-          { ...options, excludeMetaMetricsId: true },
-        ),
+    if (
+      identifiedPayload.sensitiveProperties &&
+      options?.excludeMetaMetricsId === true
+    ) {
+      throw new Error(
+        'sensitiveProperties was specified in an event payload that also set the excludeMetaMetricsId flag',
       );
     }
 
-    events.push(
-      this.#track(this.#buildEventPayload(identifiedPayload), options),
-    );
-
-    await Promise.all(events);
+    await this.#track(this.#buildEventPayload(identifiedPayload), options);
   }
 
   /**
@@ -1176,7 +1108,9 @@ export class MetaMetricsController extends BaseController<
   // It adds an event into a queue, which is only tracked if a user opts into metrics.
   addEventBeforeMetricsOptIn(event: MetaMetricsEventPayload): void {
     this.update((state) => {
-      state.eventsBeforeMetricsOptIn.push(event);
+      const queue =
+        state.eventsBeforeMetricsOptIn as unknown as MetaMetricsEventPayload[];
+      queue.push(event);
     });
   }
 
@@ -1202,7 +1136,9 @@ export class MetaMetricsController extends BaseController<
   // It adds a trace into a queue, which is only tracked if a user opts into metrics.
   addTraceBeforeMetricsOptIn(traceData: BufferedTrace): void {
     this.update((state) => {
-      state.tracesBeforeMetricsOptIn.push(traceData);
+      const queue =
+        state.tracesBeforeMetricsOptIn as unknown as BufferedTrace[];
+      queue.push(traceData);
     });
   }
 
@@ -1217,7 +1153,7 @@ export class MetaMetricsController extends BaseController<
     request: TraceRequest,
     fn?: TraceCallback<TraceResultType>,
   ): TraceResultType | undefined {
-    if (this.state.participateInMetaMetrics) {
+    if (this.#analyticsGetState().optedIn) {
       return fn ? trace(request, fn) : (trace(request) as TraceResultType);
     }
 
@@ -1249,7 +1185,7 @@ export class MetaMetricsController extends BaseController<
    * @param request - The end trace request
    */
   bufferedEndTrace(request: EndTraceRequest): void {
-    if (this.state.participateInMetaMetrics) {
+    if (this.#analyticsGetState().optedIn) {
       endTrace(request);
     } else {
       this.addTraceBeforeMetricsOptIn({
@@ -1271,16 +1207,10 @@ export class MetaMetricsController extends BaseController<
     });
   }
 
-  // Retrieve (or generate if doesn't exist) the client metametrics id
+  // Retrieve the client metametrics id from AnalyticsController state
   getMetaMetricsId(): string {
-    let { metaMetricsId } = this.state;
-    if (!metaMetricsId) {
-      metaMetricsId = this.generateMetaMetricsId();
-      this.update((state) => {
-        state.metaMetricsId = metaMetricsId;
-      });
-    }
-    return metaMetricsId;
+    const { analyticsId } = this.#analyticsGetState();
+    return analyticsId;
   }
 
   /** PRIVATE METHODS */
@@ -1326,8 +1256,8 @@ export class MetaMetricsController extends BaseController<
    * @returns formatted event payload for segment
    */
   #buildEventPayload(
-    rawPayload: Omit<MetaMetricsEventPayload, 'sensitiveProperties'>,
-  ): SegmentEventPayload {
+    rawPayload: MetaMetricsEventPayload,
+  ): SegmentEventPayload & Pick<SegmentSubmissionPayload, 'sensitiveProperties'> {
     const {
       event,
       properties,
@@ -1339,6 +1269,7 @@ export class MetaMetricsController extends BaseController<
       referrer,
       environmentType = ENVIRONMENT_TYPE_BACKGROUND,
       timestamp,
+      sensitiveProperties,
     } = rawPayload;
 
     let chainId;
@@ -1383,6 +1314,7 @@ export class MetaMetricsController extends BaseController<
       },
       context: this.#buildContext(referrer, page),
       timestamp,
+      sensitiveProperties,
     };
   }
 
@@ -1656,8 +1588,6 @@ export class MetaMetricsController extends BaseController<
    * @param userTraits
    */
   #identify(userTraits: MetaMetricsUserTraits): void {
-    const { metaMetricsId } = this.state;
-
     if (!userTraits || Object.keys(userTraits).length === 0) {
       console.warn('MetaMetricsController#_identify: No userTraits found');
       return;
@@ -1665,7 +1595,6 @@ export class MetaMetricsController extends BaseController<
 
     try {
       this.#submitSegmentAPICall('identify', {
-        userId: metaMetricsId ?? undefined,
         traits: userTraits,
       });
     } catch (err) {
@@ -1721,28 +1650,24 @@ export class MetaMetricsController extends BaseController<
   }
 
   /**
-   * Perform validation on the payload and update the id type to use before
-   * sending to Segment. Also examines the options to route and handle the
-   * event appropriately.
+   * Perform validation on the payload before sending to Segment.
+   * Also examines the options to route and handle the event appropriately.
    *
    * @private
    * @param payload - properties to attach to event
    * @param options - options for routing and handling the event
    */
   #track(
-    payload: SegmentEventPayload,
+    payload: SegmentEventPayload &
+      Pick<SegmentSubmissionPayload, 'sensitiveProperties'>,
     options?: MetaMetricsEventOptions,
   ): Promise<void> {
     const {
-      isOptIn,
-      metaMetricsId: metaMetricsIdOverride,
       matomoEvent,
-      flushImmediately,
       // TODO: Fix in https://github.com/MetaMask/metamask-extension/issues/31880
       // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
     } = options || {};
-    let idType: 'userId' | 'anonymousId' = 'userId';
-    let idValue = this.state.metaMetricsId;
+
     let excludeMetaMetricsId = options?.excludeMetaMetricsId ?? false;
     // This is carried over from the old implementation, and will likely need
     // to be updated to work with the new tracking plan. I think we should use
@@ -1752,34 +1677,21 @@ export class MetaMetricsController extends BaseController<
     if (options?.excludeMetaMetricsId !== false && isSendFlow) {
       excludeMetaMetricsId = true;
     }
-    // If we are tracking sensitive data we will always use the anonymousId
-    // property as well as our METAMETRICS_ANONYMOUS_ID. This prevents us from
-    // associating potentially identifiable information with a specific id.
-    // During the opt in flow we will track all events, but do so with the
-    // anonymous id. The one exception to that rule is after the user opts in
-    // to MetaMetrics. When that happens we receive back the user's new
-    // MetaMetrics id before it is fully persisted to state. To avoid a race
-    // condition we explicitly pass the new id to the track method. In that
-    // case we will track the opt in event to the user's id. In all other cases
-    // we use the metaMetricsId from state.
-    if (excludeMetaMetricsId || (isOptIn && !metaMetricsIdOverride)) {
-      idType = 'anonymousId';
-      idValue = METAMETRICS_ANONYMOUS_ID;
-    } else if (isOptIn && metaMetricsIdOverride) {
-      idValue = metaMetricsIdOverride;
-    }
-    payload[idType] = idValue ?? undefined;
 
-    // If this is an event on the old matomo schema, add a key to the payload
-    // to designate it as such
+    // The platform adapter reads the "anonymous" marker from track `properties`
+    // and swaps the user id for the shared anonymous id when marked is true.
+    if (excludeMetaMetricsId) {
+      (payload.properties as Record<string, Json>)[ANONYMOUS_EVENT_PROPERTY] =
+        true;
+    }
+
     if (matomoEvent === true) {
       payload.properties.legacy_event = true;
     }
 
     // Promises will only resolve when the event is sent to segment. For any
     // event that relies on this promise being fulfilled before performing UI
-    // updates, or otherwise delaying user interaction, supply the
-    // 'flushImmediately' flag to the trackEvent method.
+    // updates.
     return new Promise<void>((resolve, reject) => {
       const callback = (err: unknown) => {
         if (err) {
@@ -1799,9 +1711,6 @@ export class MetaMetricsController extends BaseController<
       };
 
       this.#submitSegmentAPICall('track', payload, callback);
-      if (flushImmediately) {
-        this.#segment.flush();
-      }
     });
   }
 
@@ -1818,29 +1727,26 @@ export class MetaMetricsController extends BaseController<
    */
   #submitSegmentAPICall(
     eventType: SegmentEventType,
-    payload: Partial<SegmentEventPayload>,
+    payload: SegmentSubmissionPayload,
     callback?: (result: unknown) => unknown,
   ): void {
     const { useExternalServices } = this.messenger.call(
       'PreferencesController:getState',
     );
-    const isBasicFunctionalityDisabled = !useExternalServices;
-    if (isBasicFunctionalityDisabled) {
-      // If basic functionality is disabled, we block all events
+    if (!useExternalServices) {
+      // If basic functionality is disabled, we block all events.
       return;
     }
 
-    const {
-      metaMetricsId,
-      latestNonAnonymousEventTimestamp,
-      participateInMetaMetrics,
-    } = this.state;
-
-    const userOptedOut = !participateInMetaMetrics || !metaMetricsId;
+    const { latestNonAnonymousEventTimestamp } = this.state;
+    const { analyticsId, optedIn } = this.#analyticsGetState();
+    const userOptedOut = !optedIn || analyticsId.length === 0;
     const isMetricsOptOutEvent =
       payload.event === MetaMetricsEventName.MetricsOptOut;
     const isFireFox = getPlatform() === PLATFORM_FIREFOX;
     const shouldTrackMetricsOptOutEvent = isMetricsOptOutEvent && !isFireFox;
+    const shouldRestoreOptOutAfterTracking =
+      shouldTrackMetricsOptOutEvent && !optedIn;
 
     // Block events when user opted out. Exception: MetricsOptOut events are still sent on
     // non-Firefox browsers to record the opt-out action (Firefox privacy policies prohibit this).
@@ -1858,33 +1764,131 @@ export class MetaMetricsController extends BaseController<
         timestamp = payloadDate;
       }
     }
+
     const modifiedPayload = {
       ...payload,
       messageId,
       timestamp,
     };
+
+    const propertiesAsRecord = modifiedPayload.properties as
+      | Record<string, Json>
+      | undefined;
+
+    // Anonymization is decided in `#track` via this property.
+    const isAnonymizedEvent =
+      propertiesAsRecord?.[ANONYMOUS_EVENT_PROPERTY] === true;
     this.update((state) => {
-      state.latestNonAnonymousEventTimestamp =
-        modifiedPayload.anonymousId === METAMETRICS_ANONYMOUS_ID
-          ? latestNonAnonymousEventTimestamp
-          : timestamp.valueOf();
-      state.segmentApiCalls[messageId] = {
+      state.latestNonAnonymousEventTimestamp = isAnonymizedEvent
+        ? latestNonAnonymousEventTimestamp
+        : timestamp.valueOf();
+
+      const persistedPayload = {
+        ...modifiedPayload,
+        timestamp: modifiedPayload.timestamp.toString(),
+      };
+      if (
+        persistedPayload.sensitiveProperties &&
+        Object.keys(persistedPayload.sensitiveProperties).length === 0
+      ) {
+        delete persistedPayload.sensitiveProperties;
+      }
+
+      const segmentApiCalls = state.segmentApiCalls as Record<
+        string,
+        {
+          eventType: SegmentEventType;
+          payload: SegmentSubmissionPayload & { timestamp: string };
+        }
+      >;
+      segmentApiCalls[messageId] = {
         eventType,
-        // @ts-expect-error The reason this is needed is that the event property in the payload can be missing,
-        // whereas the state expects it to be present. It's unclear how best to handle this discrepancy.
-        payload: {
-          ...modifiedPayload,
-          timestamp: modifiedPayload.timestamp.toString(),
+        payload: persistedPayload as SegmentSubmissionPayload & {
+          timestamp: string;
         },
       };
     });
+
     const modifiedCallback = (result: unknown) => {
       this.update((state) => {
         delete state.segmentApiCalls[messageId];
       });
       return callback?.(result);
     };
-    this.#segment[eventType](modifiedPayload, modifiedCallback);
+
+    const invocationOptions: AnalyticsInvocationOptions = {
+      messageId,
+      timestamp,
+      callback: modifiedCallback,
+    };
+    if (modifiedPayload.context) {
+      invocationOptions.context = modifiedPayload.context;
+    }
+
+    // The published `@metamask/analytics-controller` does not yet accept the
+    // `options` argument on track/trackView/identify (PR MetaMask/core#8701
+    // adds it). Cast to `unknown` first to forward the third argument while
+    // keeping the existing call sites typed; remove this cast once #8701 is
+    // released.
+    const messengerCall = this.messenger.call.bind(this.messenger) as (
+      action: string,
+      ...args: unknown[]
+    ) => unknown;
+
+    if (eventType === 'identify') {
+      const { traits } = modifiedPayload;
+      messengerCall(
+        'AnalyticsController:identify',
+        traits as AnalyticsUserTraits,
+        invocationOptions,
+      );
+      return;
+    }
+
+    if (eventType === 'page') {
+      const name = modifiedPayload.name ?? '';
+      const properties = modifiedPayload.properties as
+        | Record<string, Json>
+        | undefined;
+      messengerCall(
+        'AnalyticsController:trackView',
+        name,
+        properties,
+        invocationOptions,
+      );
+      return;
+    }
+
+    const eventName = modifiedPayload.event ?? '';
+    const trackProperties = (modifiedPayload.properties ?? {}) as Record<
+      string,
+      Json
+    >;
+    const sensitiveProps = modifiedPayload.sensitiveProperties ?? {};
+    const hasProperties =
+      Object.keys(trackProperties).length > 0 ||
+      Object.keys(sensitiveProps).length > 0;
+
+    if (shouldRestoreOptOutAfterTracking) {
+      this.messenger.call('AnalyticsController:optIn');
+    }
+
+    try {
+      messengerCall(
+        'AnalyticsController:trackEvent',
+        {
+          name: eventName,
+          properties: trackProperties,
+          sensitiveProperties: sensitiveProps,
+          hasProperties,
+        },
+        invocationOptions,
+      );
+    } finally {
+      if (shouldRestoreOptOutAfterTracking) {
+        this.messenger.call('AnalyticsController:optOut');
+      }
+    }
   }
 
   /**

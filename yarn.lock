@@ -5642,6 +5642,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@metamask/analytics-controller@npm:^1.0.1":
+  version: 1.0.1
+  resolution: "@metamask/analytics-controller@npm:1.0.1"
+  dependencies:
+    "@metamask/base-controller": "npm:^9.0.1"
+    "@metamask/messenger": "npm:^1.0.0"
+    "@metamask/utils": "npm:^11.9.0"
+  checksum: 10/ee185efd00c50c6afa2a2eecdc84e28ae50f4f2ac9239cd556888209de20d241c1adb28ef2a7e5c5a3d18aa6dff740229d0805c4a28f30b6012b3d92708cc4e6
+  languageName: node
+  linkType: hard
+
 "@metamask/announcement-controller@npm:^8.0.0":
   version: 8.0.0
   resolution: "@metamask/announcement-controller@npm:8.0.0"
@@ -34160,6 +34171,7 @@ __metadata:
     "@metamask/account-watcher": "npm:^4.1.3"
     "@metamask/accounts-controller": "npm:^37.1.1"
     "@metamask/address-book-controller": "npm:^7.1.0"
+    "@metamask/analytics-controller": "npm:^1.0.1"
     "@metamask/announcement-controller": "npm:^8.0.0"
     "@metamask/api-specs": "npm:^0.13.0"
     "@metamask/approval-controller": "npm:^9.0.0"

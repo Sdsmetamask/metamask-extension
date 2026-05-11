@@ -38,7 +38,7 @@ export const OAuthServiceInit: MessengerClientInitFunction<
       ),
 
     getParticipateInMetaMetrics: () =>
-      metaMetricsController.state.participateInMetaMetrics,
+      getController('AnalyticsController').state.optedIn === true,
   });
 
   return {

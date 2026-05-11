@@ -28,6 +28,9 @@ export type Backup = {
   // TODO: Fix in https://github.com/MetaMask/metamask-extension/issues/31860
   // eslint-disable-next-line @typescript-eslint/naming-convention
   MetaMetricsController?: unknown;
+  // TODO: Fix in https://github.com/MetaMask/metamask-extension/issues/31860
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  AnalyticsController?: unknown;
   meta?: MetaData;
 };
 
@@ -35,6 +38,7 @@ export const backedUpStateKeys = [
   'KeyringController',
   'AppMetadataController',
   'MetaMetricsController',
+  'AnalyticsController',
 ] as const;
 
 export type BackedUpStateKey = (typeof backedUpStateKeys)[number];

@@ -401,6 +401,7 @@ import { ShieldControllerInit } from './messenger-client-init/shield/shield-cont
 import { GatorPermissionsControllerInit } from './messenger-client-init/gator-permissions/gator-permissions-controller-init';
 
 import { forwardRequestToSnap } from './lib/forwardRequestToSnap';
+import { AnalyticsControllerInit } from './messenger-client-init/analytics-controller-init';
 import { MetaMetricsControllerInit } from './messenger-client-init/metametrics-controller-init';
 import { TokenListControllerInit } from './messenger-client-init/token-list-controller-init';
 import { TokenDetectionControllerInit } from './messenger-client-init/token-detection-controller-init';
@@ -629,6 +630,7 @@ export default class MetamaskController extends EventEmitter {
       PasskeyController: PasskeyControllerInit,
       RemoteFeatureFlagController: RemoteFeatureFlagControllerInit,
       NetworkController: NetworkControllerInit,
+      AnalyticsController: AnalyticsControllerInit,
       MetaMetricsController: MetaMetricsControllerInit,
       DataDeletionService: DataDeletionServiceInit,
       MetaMetricsDataDeletionController: MetaMetricsDataDeletionControllerInit,
@@ -754,6 +756,7 @@ export default class MetamaskController extends EventEmitter {
       messengerClientsByName.SubjectMetadataController;
     this.appStateController = messengerClientsByName.AppStateController;
     this.networkController = messengerClientsByName.NetworkController;
+    this.analyticsController = messengerClientsByName.AnalyticsController;
     this.metaMetricsController = messengerClientsByName.MetaMetricsController;
     this.dataDeletionService = messengerClientsByName.DataDeletionService;
     this.metaMetricsDataDeletionController =
@@ -1361,6 +1364,7 @@ export default class MetamaskController extends EventEmitter {
       AppMetadataController: this.appMetadataController,
       KeyringController: this.keyringController,
       PreferencesController: this.preferencesController,
+      AnalyticsController: this.analyticsController,
       MetaMetricsController: this.metaMetricsController,
       MetaMetricsDataDeletionController: this.metaMetricsDataDeletionController,
       AddressBookController: this.addressBookController,
@@ -1421,6 +1425,7 @@ export default class MetamaskController extends EventEmitter {
         NetworkController: this.networkController,
         KeyringController: this.keyringController,
         PreferencesController: this.preferencesController,
+        AnalyticsController: this.analyticsController,
         MetaMetricsController: this.metaMetricsController,
         MetaMetricsDataDeletionController:
           this.metaMetricsDataDeletionController,
@@ -2617,10 +2622,17 @@ export default class MetamaskController extends EventEmitter {
     const { vault } = this.keyringController.state;
     const isInitialized = Boolean(vault);
     const flatState = this.memStore.getFlatState();
+    const { completedMetaMetricsOnboarding } =
+      this.metaMetricsController.state;
+    const { optedIn, analyticsId } = this.analyticsController.state;
+    const participateInMetaMetrics =
+      completedMetaMetricsOnboarding === true ? optedIn : null;
 
     return {
       isInitialized,
       ...sanitizeUIState(flatState),
+      participateInMetaMetrics,
+      metaMetricsId: analyticsId,
     };
   }
 
@@ -7008,9 +7020,9 @@ export default class MetamaskController extends EventEmitter {
   setUpCookieHandlerCommunication({ connectionStream }) {
     const {
       metaMetricsId,
-      dataCollectionForMarketing,
       participateInMetaMetrics,
-    } = this.metaMetricsController.state;
+      dataCollectionForMarketing,
+    } = this.getState();
 
     if (
       metaMetricsId &&
@@ -7709,6 +7721,7 @@ export default class MetamaskController extends EventEmitter {
         snapAndHardwareMessenger,
         appStateController: this.appStateController,
         metaMetricsController: this.metaMetricsController,
+        analyticsController: this.analyticsController,
       }),
     );
 
@@ -8158,6 +8171,7 @@ export default class MetamaskController extends EventEmitter {
         snapAndHardwareMessenger,
         appStateController: this.appStateController,
         metaMetricsController: this.metaMetricsController,
+        analyticsController: this.analyticsController,
       }),
     );
 
@@ -8686,9 +8700,12 @@ export default class MetamaskController extends EventEmitter {
       upsertTransactionUIMetricsFragment:
         this.upsertTransactionUIMetricsFragment.bind(this),
       // Metametrics Actions
-      getParticipateInMetrics: () =>
-        this.controllerMessenger.call('MetaMetricsController:getState')
-          .participateInMetaMetrics,
+      getParticipateInMetrics: () => {
+        const { completedMetaMetricsOnboarding } =
+          this.metaMetricsController.state;
+        const { optedIn } = this.analyticsController.state;
+        return completedMetaMetricsOnboarding === true && optedIn === true;
+      },
       trackEvent: this.controllerMessenger.call.bind(
         this.controllerMessenger,
         'MetaMetricsController:trackEvent',

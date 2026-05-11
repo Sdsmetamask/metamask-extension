@@ -283,9 +283,6 @@ export function MetaMetricsProvider({ children }: MetaMetricsProviderProps) {
           page: context.page,
           referrer: context.referrer,
         },
-        {
-          isOptInPath: location.pathname.startsWith('/initialize'),
-        },
       );
     }
     previousMatch.current = match?.pattern?.path;
