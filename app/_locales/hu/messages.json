@@ -208,9 +208,6 @@
   "done": {
     "message": "Kész"
   },
-  "downloadGoogleChrome": {
-    "message": "Google Chrome letöltése"
-  },
   "downloadStateLogs": {
     "message": "Állapotnapló letöltése"
   },
@@ -268,9 +265,6 @@
   },
   "hardwareWallets": {
     "message": "Hardveres tárca csatlakoztatása"
-  },
-  "hardwareWalletsMsg": {
-    "message": "Válassza ki a MetaMask-kal használni kívánt hardveres pénztárcát"
   },
   "here": {
     "message": "itt",

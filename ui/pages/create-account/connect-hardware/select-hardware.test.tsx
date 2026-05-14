@@ -1,18 +1,8 @@
 import React from 'react';
-import { fireEvent, screen } from '@testing-library/react';
-import { enLocale as messages } from '../../../../test/lib/i18n-helpers';
-import {
-  HardwareAffiliateLinks,
-  HardwareAffiliateTutorialLinks,
-  HardwareDeviceNames,
-} from '../../../../shared/constants/hardware-wallets';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { HardwareDeviceNames } from '../../../../shared/constants/hardware-wallets';
 import { renderWithProvider } from '../../../../test/lib/render-helpers-navigate';
-import { openWindow } from '../../../helpers/utils/window';
 import SelectHardware from './select-hardware';
-
-jest.mock('../../../helpers/utils/window', () => ({
-  openWindow: jest.fn(),
-}));
 
 jest.mock('../../../../shared/lib/browser-runtime.utils', () => ({
   getBrowserName: () => 'chrome',
@@ -22,47 +12,58 @@ describe('SelectHardware', () => {
   const mockOnCancel = jest.fn();
   const mockConnectToHardwareWallet = jest.fn();
 
-  const render = (browserSupported = true, ledgerTransportType?: 'live') =>
+  const render = (browserSupported = true) =>
     renderWithProvider(
       <SelectHardware
         onCancel={mockOnCancel}
         connectToHardwareWallet={mockConnectToHardwareWallet}
         browserSupported={browserSupported}
-        ledgerTransportType={ledgerTransportType}
       />,
       undefined,
     );
 
   beforeEach(() => {
     jest.clearAllMocks();
-    global.platform = {
-      openTab: jest.fn(),
-    } as unknown as typeof global.platform;
   });
 
-  it('disables continue button when no device is selected', () => {
+  it('renders all hardware wallet options', () => {
     render();
 
     expect(
-      screen.getByRole('button', { name: messages.continue.message }),
-    ).toBeDisabled();
+      screen.getByTestId('connect-hardware-wallet-ledger'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId('connect-hardware-wallet-keystone'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId('connect-hardware-wallet-trezor'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId('connect-hardware-wallet-onekey'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId('connect-hardware-wallet-lattice'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId('connect-hardware-wallet-other-qr'),
+    ).toBeInTheDocument();
   });
 
-  it('calls connectToHardwareWallet when ledger is selected and continue is clicked', () => {
+  it('renders the page title', () => {
     render();
 
-    fireEvent.click(screen.getByLabelText(messages.ledger.message));
-    fireEvent.click(
-      screen.getByRole('button', { name: messages.continue.message }),
-    );
-
-    expect(mockConnectToHardwareWallet).toHaveBeenCalledTimes(1);
-    expect(mockConnectToHardwareWallet).toHaveBeenCalledWith(
-      HardwareDeviceNames.ledger,
-    );
+    expect(screen.getByText('Connect a hardware wallet')).toBeInTheDocument();
   });
 
-  it('calls onCancel when close button is clicked', () => {
+  it('renders the back button', () => {
+    render();
+
+    expect(
+      screen.getByTestId('hardware-connect-close-btn'),
+    ).toBeInTheDocument();
+  });
+
+  it('calls onCancel when back button is clicked', () => {
     render();
 
     fireEvent.click(screen.getByTestId('hardware-connect-close-btn'));
@@ -70,95 +71,121 @@ describe('SelectHardware', () => {
     expect(mockOnCancel).toHaveBeenCalledTimes(1);
   });
 
-  it('calls connectToHardwareWallet when trezor is selected and continue is clicked', () => {
+  it('calls connectToHardwareWallet with ledger when Ledger is clicked', () => {
     render();
 
-    fireEvent.click(screen.getByLabelText(messages.trezor.message));
-    fireEvent.click(
-      screen.getByRole('button', { name: messages.continue.message }),
-    );
+    fireEvent.click(screen.getByTestId('connect-hardware-wallet-ledger'));
 
-    expect(mockConnectToHardwareWallet).toHaveBeenCalledTimes(1);
     expect(mockConnectToHardwareWallet).toHaveBeenCalledWith(
-      HardwareDeviceNames.trezor,
+      HardwareDeviceNames.ledger,
     );
   });
 
-  it('calls connectToHardwareWallet when qr is selected and continue is clicked', () => {
+  it('calls connectToHardwareWallet with qr when Keystone is clicked', () => {
     render();
 
-    fireEvent.click(screen.getByLabelText('QRCode'));
-    fireEvent.click(
-      screen.getByRole('button', { name: messages.continue.message }),
-    );
+    fireEvent.click(screen.getByTestId('connect-hardware-wallet-keystone'));
 
-    expect(mockConnectToHardwareWallet).toHaveBeenCalledTimes(1);
     expect(mockConnectToHardwareWallet).toHaveBeenCalledWith(
       HardwareDeviceNames.qr,
     );
   });
 
-  it('opens ledger marketing links when ledger is selected', () => {
+  it('calls connectToHardwareWallet with trezor when Trezor is clicked', () => {
     render();
 
-    fireEvent.click(screen.getByLabelText(messages.ledger.message));
-    fireEvent.click(
-      screen.getByRole('button', { name: messages.buyNow.message }),
-    );
-    fireEvent.click(
-      screen.getByRole('button', { name: messages.tutorial.message }),
-    );
+    fireEvent.click(screen.getByTestId('connect-hardware-wallet-trezor'));
 
-    expect(openWindow).toHaveBeenNthCalledWith(
-      1,
-      HardwareAffiliateLinks.Ledger,
+    expect(mockConnectToHardwareWallet).toHaveBeenCalledWith(
+      HardwareDeviceNames.trezor,
     );
-    expect(openWindow).toHaveBeenNthCalledWith(
-      2,
-      HardwareAffiliateTutorialLinks.Ledger,
-    );
-    expect(openWindow).toHaveBeenCalledTimes(2);
   });
 
-  it('renders Ledger Live setup step for live transport', () => {
-    render(true, 'live');
+  it('calls connectToHardwareWallet with oneKey when OneKey is clicked', () => {
+    render();
 
-    fireEvent.click(screen.getByLabelText(messages.ledger.message));
+    fireEvent.click(screen.getByTestId('connect-hardware-wallet-onekey'));
 
-    expect(
-      screen.getByText(messages.step1LedgerWallet.message),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(messages.step2LedgerWallet.message),
-    ).toBeInTheDocument();
+    expect(mockConnectToHardwareWallet).toHaveBeenCalledWith(
+      HardwareDeviceNames.oneKey,
+    );
   });
 
-  it('renders unsupported browser screen and opens Chrome download link', () => {
+  it('calls connectToHardwareWallet with lattice when Lattice is clicked', () => {
+    render();
+
+    fireEvent.click(screen.getByTestId('connect-hardware-wallet-lattice'));
+
+    expect(mockConnectToHardwareWallet).toHaveBeenCalledWith(
+      HardwareDeviceNames.lattice,
+    );
+  });
+
+  it('calls connectToHardwareWallet with qr when Other QR wallet is clicked', () => {
+    render();
+
+    fireEvent.click(screen.getByTestId('connect-hardware-wallet-other-qr'));
+
+    expect(mockConnectToHardwareWallet).toHaveBeenCalledWith(
+      HardwareDeviceNames.qr,
+    );
+  });
+
+  it('renders unsupported browser screen when browser is not supported', () => {
     render(false);
 
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: messages.downloadGoogleChrome.message,
-      }),
-    );
-
-    expect(global.platform.openTab).toHaveBeenCalledTimes(1);
-    expect(global.platform.openTab).toHaveBeenCalledWith({
-      url: 'https://google.com/chrome',
-    });
+    expect(
+      screen.getByText('Your browser is not supported...'),
+    ).toBeInTheDocument();
   });
 
-  it('opens Ngrave marketing links when QR device is selected', () => {
-    render();
+  describe('Trezor USB flow', () => {
+    const originalUsb = window.navigator.usb;
 
-    fireEvent.click(screen.getByLabelText('QRCode'));
-    fireEvent.click(screen.getByTestId('ngrave-brand-buy-now-btn'));
-    fireEvent.click(screen.getByTestId('ngrave-brand-learn-more-btn'));
+    beforeEach(() => {
+      Object.defineProperty(window.navigator, 'usb', {
+        value: {
+          requestDevice: jest.fn().mockResolvedValue({}),
+        },
+        writable: true,
+        configurable: true,
+      });
+    });
 
-    expect(openWindow).toHaveBeenNthCalledWith(
-      1,
-      HardwareAffiliateLinks.Ngrave,
-    );
-    expect(openWindow).toHaveBeenCalledTimes(2);
+    afterEach(() => {
+      Object.defineProperty(window.navigator, 'usb', {
+        value: originalUsb,
+        writable: true,
+        configurable: true,
+      });
+    });
+
+    it('requests USB device before connecting Trezor when USB is supported', async () => {
+      render();
+
+      fireEvent.click(screen.getByTestId('connect-hardware-wallet-trezor'));
+
+      await waitFor(() => {
+        expect(mockConnectToHardwareWallet).toHaveBeenCalledWith(
+          HardwareDeviceNames.trezor,
+        );
+      });
+    });
+
+    it('still connects Trezor when USB request is cancelled by user', async () => {
+      (window.navigator.usb.requestDevice as jest.Mock).mockRejectedValue(
+        new Error('No device selected'),
+      );
+
+      render();
+
+      fireEvent.click(screen.getByTestId('connect-hardware-wallet-trezor'));
+
+      await waitFor(() => {
+        expect(mockConnectToHardwareWallet).toHaveBeenCalledWith(
+          HardwareDeviceNames.trezor,
+        );
+      });
+    });
   });
 });

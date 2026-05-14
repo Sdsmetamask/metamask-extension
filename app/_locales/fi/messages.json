@@ -208,9 +208,6 @@
   "done": {
     "message": "Valmis"
   },
-  "downloadGoogleChrome": {
-    "message": "Lataa Google Chrome"
-  },
   "downloadStateLogs": {
     "message": "Lataa tilalokit"
   },
@@ -268,9 +265,6 @@
   },
   "hardwareWallets": {
     "message": "Yhdistä kiinteän laitteiston lompakko"
-  },
-  "hardwareWalletsMsg": {
-    "message": "Valitse laitteistokukkaro, jota haluaisit käyttää MetaMaskilla"
   },
   "here": {
     "message": "tässä",

@@ -208,9 +208,6 @@
   "done": {
     "message": "Atlikta"
   },
-  "downloadGoogleChrome": {
-    "message": "Atsiunčiama „Google Chrome“"
-  },
   "downloadStateLogs": {
     "message": "Atsisiųsti būsenos žurnalus"
   },
@@ -268,9 +265,6 @@
   },
   "hardwareWallets": {
     "message": "Susieti aparatinės įrangos slaptažodinę"
-  },
-  "hardwareWalletsMsg": {
-    "message": "Pasirinkite aparatinės įrangos slaptažodinę, kurią pageidaujate naudoti su „MetaTask“"
   },
   "here": {
     "message": "čia",

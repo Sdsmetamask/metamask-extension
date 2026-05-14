@@ -208,9 +208,6 @@
   "done": {
     "message": "Gotowe"
   },
-  "downloadGoogleChrome": {
-    "message": "Ściągnij Google Chrome"
-  },
   "downloadStateLogs": {
     "message": "Załaduj logi stanów"
   },
@@ -268,9 +265,6 @@
   },
   "hardwareWallets": {
     "message": "Podłącz sprzętowy portfel"
-  },
-  "hardwareWalletsMsg": {
-    "message": "Wybierz portfel sprzętowy, którego chcesz użyć z MetaMaskiem"
   },
   "here": {
     "message": "tutaj",

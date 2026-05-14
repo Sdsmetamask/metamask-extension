@@ -208,9 +208,6 @@
   "done": {
     "message": "Pabeigts"
   },
-  "downloadGoogleChrome": {
-    "message": "Lejupielādēt ar Google Chrome"
-  },
   "downloadStateLogs": {
     "message": "Lejupielādēt stāvokļa žurnālus"
   },
@@ -268,9 +265,6 @@
   },
   "hardwareWallets": {
     "message": "Pieslēdziet aparatūras maku"
-  },
-  "hardwareWalletsMsg": {
-    "message": "Atlasiet aparatūras maku lietošanai ar MetaMask"
   },
   "here": {
     "message": "šeit",

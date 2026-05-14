@@ -208,9 +208,6 @@
   "done": {
     "message": "Končano"
   },
-  "downloadGoogleChrome": {
-    "message": "Prenesi Google Chrome"
-  },
   "downloadStateLogs": {
     "message": "Prenesi dnevnike state"
   },
@@ -265,9 +262,6 @@
   },
   "hardwareWallets": {
     "message": "Poveži strojno denarnico"
-  },
-  "hardwareWalletsMsg": {
-    "message": "Izberite vrsto strojne denarnice"
   },
   "here": {
     "message": "tukaj",

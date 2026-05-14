@@ -208,9 +208,6 @@
   "done": {
     "message": "Готово"
   },
-  "downloadGoogleChrome": {
-    "message": "Изтеглете Google Chrome"
-  },
   "downloadStateLogs": {
     "message": "Изтеглете държавни дневници"
   },
@@ -268,9 +265,6 @@
   },
   "hardwareWallets": {
     "message": "Свържете хардуерен портфейл"
-  },
-  "hardwareWalletsMsg": {
-    "message": "Изберете хардуерен портфейл, който искате да използвате с MetaMask"
   },
   "here": {
     "message": "тук",

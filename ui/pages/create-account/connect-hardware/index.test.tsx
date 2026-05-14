@@ -150,11 +150,20 @@ const MOCK_ACCOUNTS = [
   { address: '0xAddress5', balance: null, index: 4 },
 ];
 
+const DEVICE_LABEL_TO_TESTID: Record<string, string> = {
+  [tEn('ledger')]: 'connect-hardware-wallet-ledger',
+  [tEn('trezor')]: 'connect-hardware-wallet-trezor',
+  [tEn('lattice')]: 'connect-hardware-wallet-lattice',
+  [tEn('oneKey')]: 'connect-hardware-wallet-onekey',
+  QRCode: 'connect-hardware-wallet-keystone',
+};
+
 function connectToDevice(labelText: string) {
-  const deviceButton = screen.getByLabelText(labelText);
-  const continueButton = screen.getByText(tEn('continue'));
+  const testId = DEVICE_LABEL_TO_TESTID[labelText];
+  const deviceButton = testId
+    ? screen.getByTestId(testId)
+    : screen.getByText(labelText);
   fireEvent.click(deviceButton);
-  fireEvent.click(continueButton);
 }
 
 describe('ConnectHardwareForm', () => {
@@ -804,40 +813,17 @@ describe('ConnectHardwareForm', () => {
     });
   });
 
-  describe('QR Hardware Wallet Steps', () => {
-    it('renders the QR hardware wallet steps when QR is selected', async () => {
+  describe('QR Hardware Wallet', () => {
+    it('calls connectHardware when Keystone wallet option is clicked', async () => {
+      mockConnectHardware.mockResolvedValue(MOCK_ACCOUNTS);
       const mockStore = configureMockStore([thunk])(createMockState());
       renderWithProvider(<ConnectHardwareForm />, mockStore);
 
-      const qrButton = screen.getByLabelText('QRCode');
-      fireEvent.click(qrButton);
+      connectToDevice('QRCode');
 
       await waitFor(() => {
-        expect(screen.getByText(tEn('keystone'))).toBeInTheDocument();
-        expect(screen.getByText(tEn('airgapVault'))).toBeInTheDocument();
-        expect(screen.getByText(tEn('coolWallet'))).toBeInTheDocument();
-        expect(screen.getByText(tEn('dcent'))).toBeInTheDocument();
-        expect(screen.getByText(tEn('imToken'))).toBeInTheDocument();
+        expect(mockConnectHardwareAction).toHaveBeenCalled();
       });
-    });
-  });
-
-  describe('Select Hardware', () => {
-    it('opens Ngrave Zero marketing links', async () => {
-      window.open = jest.fn();
-      const mockStore = configureMockStore([thunk])(createMockState());
-      renderWithProvider(<ConnectHardwareForm />, mockStore);
-
-      const qrButton = screen.getByLabelText('QRCode');
-      fireEvent.click(qrButton);
-
-      const buyNowButton = screen.getByTestId('ngrave-brand-buy-now-btn');
-      fireEvent.click(buyNowButton);
-      expect(window.open).toHaveBeenCalled();
-
-      const learnMoreButton = screen.getByTestId('ngrave-brand-learn-more-btn');
-      fireEvent.click(learnMoreButton);
-      expect(window.open).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -894,8 +880,7 @@ describe('ConnectHardwareForm', () => {
 
         renderWithProvider(<ConnectHardwareForm />, mockStore);
 
-        fireEvent.click(screen.getByLabelText(tEn('ledger')));
-        fireEvent.click(screen.getByText(tEn('continue')));
+        connectToDevice(tEn('ledger'));
 
         await waitFor(() => {
           expect(
@@ -913,8 +898,7 @@ describe('ConnectHardwareForm', () => {
 
         renderWithProvider(<ConnectHardwareForm />, mockStore);
 
-        fireEvent.click(screen.getByLabelText(tEn('ledger')));
-        fireEvent.click(screen.getByText(tEn('continue')));
+        connectToDevice(tEn('ledger'));
 
         await waitFor(() => {
           expect(screen.getByText(appClosedMessage)).toBeInTheDocument();
