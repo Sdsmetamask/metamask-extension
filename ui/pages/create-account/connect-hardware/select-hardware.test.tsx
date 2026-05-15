@@ -4,6 +4,12 @@ import { HardwareDeviceNames } from '../../../../shared/constants/hardware-walle
 import { renderWithProvider } from '../../../../test/lib/render-helpers-navigate';
 import SelectHardware from './select-hardware';
 
+const mockNavigate = jest.fn();
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useNavigate: () => mockNavigate,
+}));
+
 jest.mock('../../../../shared/lib/browser-runtime.utils', () => ({
   getBrowserName: () => 'chrome',
 }));
@@ -47,93 +53,97 @@ describe('SelectHardware', () => {
     ).toBeInTheDocument();
   });
 
+  it('renders wallet option labels', () => {
+    render();
+
+    expect(screen.getByText('Ledger')).toBeInTheDocument();
+    expect(screen.getByText('Keystone')).toBeInTheDocument();
+    expect(screen.getByText('Trezor')).toBeInTheDocument();
+    expect(screen.getByText('OneKey')).toBeInTheDocument();
+    expect(screen.getByText('Lattice')).toBeInTheDocument();
+    expect(screen.getByText('Other QR wallet')).toBeInTheDocument();
+  });
+
   it('renders the page title', () => {
     render();
 
     expect(screen.getByText('Connect a hardware wallet')).toBeInTheDocument();
   });
 
-  it('renders the back button', () => {
+  it('navigates to previous page when back button is clicked', () => {
     render();
 
-    expect(
-      screen.getByTestId('hardware-connect-close-btn'),
-    ).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('hardware-connect-close-btn'));
+
+    expect(mockNavigate).toHaveBeenCalledWith(-1);
   });
 
-  it('navigates back when back button is clicked', () => {
-    render();
+  describe('wallet selection', () => {
+    it('connects to Ledger', () => {
+      render();
+      fireEvent.click(screen.getByTestId('connect-hardware-wallet-ledger'));
+      expect(mockConnectToHardwareWallet).toHaveBeenCalledWith(
+        HardwareDeviceNames.ledger,
+      );
+    });
 
-    const backButton = screen.getByTestId('hardware-connect-close-btn');
-    fireEvent.click(backButton);
+    it('connects to Keystone via QR device', () => {
+      render();
+      fireEvent.click(screen.getByTestId('connect-hardware-wallet-keystone'));
+      expect(mockConnectToHardwareWallet).toHaveBeenCalledWith(
+        HardwareDeviceNames.qr,
+      );
+    });
+
+    it('connects to Trezor', () => {
+      render();
+      fireEvent.click(screen.getByTestId('connect-hardware-wallet-trezor'));
+      expect(mockConnectToHardwareWallet).toHaveBeenCalledWith(
+        HardwareDeviceNames.trezor,
+      );
+    });
+
+    it('connects to OneKey', () => {
+      render();
+      fireEvent.click(screen.getByTestId('connect-hardware-wallet-onekey'));
+      expect(mockConnectToHardwareWallet).toHaveBeenCalledWith(
+        HardwareDeviceNames.oneKey,
+      );
+    });
+
+    it('connects to Lattice', () => {
+      render();
+      fireEvent.click(screen.getByTestId('connect-hardware-wallet-lattice'));
+      expect(mockConnectToHardwareWallet).toHaveBeenCalledWith(
+        HardwareDeviceNames.lattice,
+      );
+    });
+
+    it('connects to Other QR wallet via QR device', () => {
+      render();
+      fireEvent.click(screen.getByTestId('connect-hardware-wallet-other-qr'));
+      expect(mockConnectToHardwareWallet).toHaveBeenCalledWith(
+        HardwareDeviceNames.qr,
+      );
+    });
   });
 
-  it('calls connectToHardwareWallet with ledger when Ledger is clicked', () => {
-    render();
+  describe('unsupported browser', () => {
+    it('shows unsupported browser message', () => {
+      render(false);
 
-    fireEvent.click(screen.getByTestId('connect-hardware-wallet-ledger'));
+      expect(
+        screen.getByText('Your browser is not supported...'),
+      ).toBeInTheDocument();
+    });
 
-    expect(mockConnectToHardwareWallet).toHaveBeenCalledWith(
-      HardwareDeviceNames.ledger,
-    );
-  });
+    it('does not render wallet options', () => {
+      render(false);
 
-  it('calls connectToHardwareWallet with qr when Keystone is clicked', () => {
-    render();
-
-    fireEvent.click(screen.getByTestId('connect-hardware-wallet-keystone'));
-
-    expect(mockConnectToHardwareWallet).toHaveBeenCalledWith(
-      HardwareDeviceNames.qr,
-    );
-  });
-
-  it('calls connectToHardwareWallet with trezor when Trezor is clicked', () => {
-    render();
-
-    fireEvent.click(screen.getByTestId('connect-hardware-wallet-trezor'));
-
-    expect(mockConnectToHardwareWallet).toHaveBeenCalledWith(
-      HardwareDeviceNames.trezor,
-    );
-  });
-
-  it('calls connectToHardwareWallet with oneKey when OneKey is clicked', () => {
-    render();
-
-    fireEvent.click(screen.getByTestId('connect-hardware-wallet-onekey'));
-
-    expect(mockConnectToHardwareWallet).toHaveBeenCalledWith(
-      HardwareDeviceNames.oneKey,
-    );
-  });
-
-  it('calls connectToHardwareWallet with lattice when Lattice is clicked', () => {
-    render();
-
-    fireEvent.click(screen.getByTestId('connect-hardware-wallet-lattice'));
-
-    expect(mockConnectToHardwareWallet).toHaveBeenCalledWith(
-      HardwareDeviceNames.lattice,
-    );
-  });
-
-  it('calls connectToHardwareWallet with qr when Other QR wallet is clicked', () => {
-    render();
-
-    fireEvent.click(screen.getByTestId('connect-hardware-wallet-other-qr'));
-
-    expect(mockConnectToHardwareWallet).toHaveBeenCalledWith(
-      HardwareDeviceNames.qr,
-    );
-  });
-
-  it('renders unsupported browser screen when browser is not supported', () => {
-    render(false);
-
-    expect(
-      screen.getByText('Your browser is not supported...'),
-    ).toBeInTheDocument();
+      expect(
+        screen.queryByTestId('connect-hardware-wallet-ledger'),
+      ).not.toBeInTheDocument();
+    });
   });
 
   describe('Trezor USB flow', () => {
@@ -157,7 +167,7 @@ describe('SelectHardware', () => {
       });
     });
 
-    it('requests USB device before connecting Trezor when USB is supported', async () => {
+    it('connects Trezor when USB is available', async () => {
       render();
 
       fireEvent.click(screen.getByTestId('connect-hardware-wallet-trezor'));
@@ -169,7 +179,7 @@ describe('SelectHardware', () => {
       });
     });
 
-    it('still connects Trezor when USB request is cancelled by user', async () => {
+    it('still connects when user cancels USB device selection', async () => {
       (window.navigator.usb.requestDevice as jest.Mock).mockRejectedValue(
         new Error('No device selected'),
       );
