@@ -80,10 +80,14 @@ function getBundlePartSizes(
 }
 
 function getBaselineSummary(
-  storedBundleSizeData: StoredBundleSizeData | null,
-  mergeBaseCommitHash: string,
+  storedBundleSizeData: StoredBundleSizeData,
+  baselineCommitHashes: string[],
 ): BundleSizeSummary | null {
-  return storedBundleSizeData?.[mergeBaseCommitHash] ?? null;
+  const baselineCommitHash = baselineCommitHashes.find(
+    (commitHash) => storedBundleSizeData[commitHash],
+  );
+
+  return baselineCommitHash ? storedBundleSizeData[baselineCommitHash] : null;
 }
 
 function getHumanReadableDiffSize(bytes: number): string {
@@ -158,6 +162,7 @@ function getRowStatus({
 function buildUnavailableComparisonContent(
   currentSizes: Record<BundlePart, number>,
   currentZipSize: number,
+  reason: string,
 ): string {
   const currentSizeRows = bundleParts.map((part) =>
     buildBundlePartRow({
@@ -173,7 +178,7 @@ function buildUnavailableComparisonContent(
   );
 
   return [
-    'Comparison unavailable.',
+    `<small>${reason}</small>`,
     '',
     bundleSizeTableHeader,
     ...currentSizeRows,
@@ -220,11 +225,11 @@ async function fetchOptionalStoredBundleSizeData(
 function buildBundleSizeSection({
   currentSummary,
   storedBundleSizeData,
-  mergeBaseCommitHash,
+  baselineCommitHashes,
 }: {
   currentSummary: BundleSizeSummary | null;
   storedBundleSizeData: StoredBundleSizeData | null;
-  mergeBaseCommitHash: string;
+  baselineCommitHashes: string[];
 }): string {
   if (!currentSummary) {
     return buildCollapsibleSection(
@@ -235,15 +240,42 @@ function buildBundleSizeSection({
 
   const currentSizes = getBundlePartSizes(currentSummary);
   const currentZipSize = currentSummary.zip ?? 0;
+
+  if (baselineCommitHashes.length === 0) {
+    return buildCollapsibleSection(
+      'Bundle Size Diffs',
+      buildUnavailableComparisonContent(
+        currentSizes,
+        currentZipSize,
+        'No bundle-size baseline commit was available for this build, so diff values are omitted.',
+      ),
+    );
+  }
+
+  if (!storedBundleSizeData) {
+    return buildCollapsibleSection(
+      'Bundle Size Diffs',
+      buildUnavailableComparisonContent(
+        currentSizes,
+        currentZipSize,
+        'Bundle-size history data could not be loaded, so diff values are omitted.',
+      ),
+    );
+  }
+
   const baselineSummary = getBaselineSummary(
     storedBundleSizeData,
-    mergeBaseCommitHash,
+    baselineCommitHashes,
   );
 
   if (!baselineSummary) {
     return buildCollapsibleSection(
       'Bundle Size Diffs',
-      buildUnavailableComparisonContent(currentSizes, currentZipSize),
+      buildUnavailableComparisonContent(
+        currentSizes,
+        currentZipSize,
+        'No matching bundle-size baseline was found in the history data, so diff values are omitted.',
+      ),
     );
   }
 
@@ -308,24 +340,28 @@ function buildBundleSizeSection({
  * Fetches bundle size stats and builds the bundle size diff collapsible section.
  *
  * @param artifacts - The artifact links object from getArtifactLinks.
- * @param mergeBaseCommitHash - The merge base commit hash for comparison.
- * @returns HTML string for the bundle size diff section.
+ * @param bundleSizeBaselineCommitHashes - Whitespace-separated baseline commit hash candidates, newest first.
+ * @returns HTML string for the bundle size section.
  */
 export async function buildBundleSizeDiffSection(
   artifacts: ArtifactLinks,
-  mergeBaseCommitHash: string,
+  bundleSizeBaselineCommitHashes = '',
 ): Promise<string> {
-  const [currentSummary, storedBundleSizeData] = await Promise.all([
-    fetchOptionalBundleSizeSummary(
-      artifacts.bundleSizeStats.url,
-      'bundleSizeStats',
-    ),
-    fetchOptionalStoredBundleSizeData(artifacts.bundleSizeData.url),
-  ]);
+  const baselineCommitHashes = bundleSizeBaselineCommitHashes
+    .split(/\s+/u)
+    .filter(Boolean);
+  const currentSummary = await fetchOptionalBundleSizeSummary(
+    artifacts.bundleSizeStats.url,
+    'bundleSizeStats',
+  );
+  const storedBundleSizeData =
+    baselineCommitHashes.length === 0
+      ? null
+      : await fetchOptionalStoredBundleSizeData(artifacts.bundleSizeData.url);
 
   return buildBundleSizeSection({
     currentSummary,
     storedBundleSizeData,
-    mergeBaseCommitHash,
+    baselineCommitHashes,
   });
 }

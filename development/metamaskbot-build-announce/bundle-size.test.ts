@@ -60,6 +60,7 @@ describe('buildBundleSizeDiffSection', () => {
 
   afterEach(() => {
     mockFetch.mockReset();
+    jest.restoreAllMocks();
   });
 
   const artifacts = getArtifactLinks(
@@ -149,6 +150,28 @@ describe('buildBundleSizeDiffSection', () => {
     expect(result).toContain('| ✅ | zip | 4.1 KiB | +200 Bytes | +5.00% |');
   });
 
+  it('uses the first baseline candidate found in history data', async () => {
+    mockSuccessfulFetches();
+
+    const result = await buildBundleSizeDiffSection(
+      artifacts,
+      `unknown ${MERGE_BASE}`,
+    );
+
+    expect(result).toContain(
+      '| ✅ | background | 1.56 KiB | +100 Bytes | +6.67% |',
+    );
+    expect(result).toContain('| ✅ | ui | 2.44 KiB | +100 Bytes | +4.17% |');
+    expect(result).toContain('| ✅ | common | 400 Bytes | 0 Bytes | 0.00% |');
+    expect(result).toContain(
+      '| ✅ | other | 100 Bytes | +10 Bytes | +11.11% |',
+    );
+    expect(result).toContain(
+      '| ✅ | content scripts | 60 Bytes | +10 Bytes | +20.00% |',
+    );
+    expect(result).toContain('| ✅ | zip | 4.1 KiB | +200 Bytes | +5.00% |');
+  });
+
   it('shows a warning when the background diff exceeds the threshold', async () => {
     mockSuccessfulFetches({
       webpack: {
@@ -202,7 +225,30 @@ describe('buildBundleSizeDiffSection', () => {
     expect(result).toContain('Bundle size reduced!');
   });
 
-  it('renders comparison unavailable when the merge base baseline is missing', async () => {
+  it('renders current sizes when baseline commit hashes are missing', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(webpackSummary),
+    } as unknown as Response);
+
+    const result = await buildBundleSizeDiffSection(artifacts);
+
+    expect(result).toContain(
+      '<summary><strong>Bundle Size Diffs</strong></summary>',
+    );
+    expect(result).toContain(
+      '<small>No bundle-size baseline commit was available for this build, so diff values are omitted.</small>',
+    );
+    expect(result).toContain('|  | background | 1.56 KiB | n/a | n/a |');
+    expect(result).toContain('|  | ui | 2.44 KiB | n/a | n/a |');
+    expect(result).toContain('|  | common | 400 Bytes | n/a | n/a |');
+    expect(result).toContain('|  | other | 100 Bytes | n/a | n/a |');
+    expect(result).toContain('|  | content scripts | 60 Bytes | n/a | n/a |');
+    expect(result).toContain('|  | zip | 4.1 KiB | n/a | n/a |');
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders current sizes when no baseline hash is found in history data', async () => {
     mockSuccessfulFetches({ storedData: {} });
 
     const result = await buildBundleSizeDiffSection(artifacts, MERGE_BASE);
@@ -210,7 +256,9 @@ describe('buildBundleSizeDiffSection', () => {
     expect(result).toContain(
       '<summary><strong>Bundle Size Diffs</strong></summary>',
     );
-    expect(result).toContain('Comparison unavailable.');
+    expect(result).toContain(
+      '<small>No matching bundle-size baseline was found in the history data, so diff values are omitted.</small>',
+    );
     expect(result).toContain('|  | background | 1.56 KiB | n/a | n/a |');
     expect(result).toContain('|  | ui | 2.44 KiB | n/a | n/a |');
     expect(result).toContain('|  | common | 400 Bytes | n/a | n/a |');
@@ -283,7 +331,7 @@ describe('buildBundleSizeDiffSection', () => {
     expect(result).toContain('Bundle size data unavailable.');
   });
 
-  it('falls back to comparison unavailable when the stored baseline fetch fails', async () => {
+  it('renders current sizes when the stored baseline fetch fails', async () => {
     mockFetch
       .mockResolvedValueOnce({
         ok: true,
@@ -296,7 +344,9 @@ describe('buildBundleSizeDiffSection', () => {
 
     const result = await buildBundleSizeDiffSection(artifacts, MERGE_BASE);
 
-    expect(result).toContain('Comparison unavailable.');
+    expect(result).toContain(
+      '<small>Bundle-size history data could not be loaded, so diff values are omitted.</small>',
+    );
     expect(result).toContain('|  | background | 1.56 KiB | n/a | n/a |');
     expect(result).toContain('|  | ui | 2.44 KiB | n/a | n/a |');
     expect(result).toContain('|  | common | 400 Bytes | n/a | n/a |');
