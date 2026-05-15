@@ -3,165 +3,176 @@
 exports[`ConnectHardwareForm initial render render matches snapshot 1`] = `
 <div>
   <div
-    class="select-hardware"
+    class="mm-box multichain-page multichain-page--has-app-header mm-box--display-flex mm-box--flex-direction-row mm-box--justify-content-center mm-box--width-full mm-box--height-full mm-box--background-color-background-default"
+    data-testid="multichain-page"
   >
     <div
-      class="px-3 py-4"
-    >
-      <button
-        aria-label="Back"
-        class="inline-flex items-center justify-center p-0 h-8 w-8 rounded-lg bg-transparent hover:bg-hover active:bg-pressed text-icon-default"
-        data-testid="hardware-connect-close-btn"
-      >
-        <svg
-          class="inline-block w-6 h-6 text-inherit"
-          fill="currentColor"
-          viewBox="0 0 24 24"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            d="m15.112 21.886-10-10 10-10 1.775 1.775-8.225 8.224 8.225 8.226z"
-          />
-        </svg>
-      </button>
-    </div>
-    <div
-      class="px-4 select-hardware__content"
+      class="mm-box multichain-page__inner-container select-hardware mm-box--display-flex mm-box--flex-direction-column mm-box--width-full mm-box--height-full mm-box--background-color-background-default"
     >
       <div
-        class="mb-6"
+        class="mm-box mm-header-base multichain-page-header mm-box--padding-4 mm-box--display-flex mm-box--justify-content-center mm-box--align-items-center mm-box--width-full"
       >
-        <h2
-          class="text-default text-s-heading-lg leading-s-heading-lg tracking-s-heading-lg md:text-l-heading-lg md:leading-l-heading-lg md:tracking-l-heading-lg font-bold font-default"
+        <div
+          class="mm-box"
+          style="min-width: 0px;"
         >
-          Connect a hardware wallet
-        </h2>
+          <button
+            aria-label="Back"
+            class="inline-flex items-center justify-center p-0 h-8 w-8 rounded-lg bg-transparent hover:bg-hover active:bg-pressed text-icon-default"
+            data-testid="hardware-connect-close-btn"
+          >
+            <svg
+              class="inline-block w-6 h-6 text-inherit"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="m15.112 21.886-10-10 10-10 1.775 1.775-8.225 8.224 8.225 8.226z"
+              />
+            </svg>
+          </button>
+        </div>
+        <div
+          class="mm-box"
+        >
+          <h4
+            class="mm-box mm-text mm-text--heading-sm mm-text--ellipsis mm-text--text-align-center mm-box--padding-inline-start-2 mm-box--padding-inline-end-2 mm-box--display-block mm-box--color-text-default"
+          >
+            Connect a hardware wallet
+          </h4>
+        </div>
       </div>
       <div
-        class="gap-3 select-hardware__wallet-list"
+        class="mm-box multichain-page-content mm-box--padding-4 mm-box--padding-top-0 mm-box--padding-right-4 mm-box--padding-left-4 mm-box--display-flex mm-box--flex-direction-column mm-box--width-full mm-box--height-full"
+        style="overflow: auto;"
       >
-        <button
-          class="select-hardware__wallet-option"
-          data-testid="connect-hardware-wallet-ledger"
-          type="button"
+        <div
+          class="gap-3 select-hardware__wallet-list"
         >
-          <img
-            alt=""
-            class="select-hardware__wallet-image"
-            height="40"
-            src="images/hardware-wallets/ledger.svg"
-            width="40"
-          />
-          <p
-            class="text-default text-s-body-md leading-s-body-md tracking-s-body-md md:text-l-body-md md:leading-l-body-md md:tracking-l-body-md font-medium font-default"
+          <button
+            class="select-hardware__wallet-option"
+            data-testid="connect-hardware-wallet-ledger"
+            type="button"
           >
-            Ledger
-          </p>
-        </button>
-        <button
-          class="select-hardware__wallet-option"
-          data-testid="connect-hardware-wallet-keystone"
-          type="button"
-        >
-          <img
-            alt=""
-            class="select-hardware__wallet-image"
-            height="40"
-            src="images/hardware-wallets/keystone.svg"
-            width="40"
-          />
-          <p
-            class="text-default text-s-body-md leading-s-body-md tracking-s-body-md md:text-l-body-md md:leading-l-body-md md:tracking-l-body-md font-medium font-default"
-          >
-            Keystone
-          </p>
-        </button>
-        <button
-          class="select-hardware__wallet-option"
-          data-testid="connect-hardware-wallet-trezor"
-          type="button"
-        >
-          <img
-            alt=""
-            class="select-hardware__wallet-image"
-            height="40"
-            src="images/hardware-wallets/trezor.svg"
-            width="40"
-          />
-          <p
-            class="text-default text-s-body-md leading-s-body-md tracking-s-body-md md:text-l-body-md md:leading-l-body-md md:tracking-l-body-md font-medium font-default"
-          >
-            Trezor
-          </p>
-        </button>
-        <button
-          class="select-hardware__wallet-option"
-          data-testid="connect-hardware-wallet-onekey"
-          type="button"
-        >
-          <img
-            alt=""
-            class="select-hardware__wallet-image"
-            height="40"
-            src="images/hardware-wallets/onekey.svg"
-            width="40"
-          />
-          <p
-            class="text-default text-s-body-md leading-s-body-md tracking-s-body-md md:text-l-body-md md:leading-l-body-md md:tracking-l-body-md font-medium font-default"
-          >
-            OneKey
-          </p>
-        </button>
-        <button
-          class="select-hardware__wallet-option"
-          data-testid="connect-hardware-wallet-lattice"
-          type="button"
-        >
-          <div
-            class="select-hardware__wallet-icon"
-          >
-            <svg
-              class="inline-block w-6 h-6 text-icon-alternative"
-              fill="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
+            <img
+              alt=""
+              class="select-hardware__wallet-image"
+              height="40"
+              src="images/hardware-wallets/ledger.svg"
+              width="40"
+            />
+            <p
+              class="text-default text-s-body-md leading-s-body-md tracking-s-body-md md:text-l-body-md md:leading-l-body-md md:tracking-l-body-md font-medium font-default"
             >
-              <path
-                d="M11.95 18q.525 0 .888-.362c.362-.363.362-.538.362-.888s-.12-.646-.362-.887-.538-.363-.888-.363-.646.12-.887.363-.363.537-.363.887.12.646.363.888.537.362.887.362m-.9-3.85h1.85q0-.825.187-1.3c.187-.475.48-.75 1.063-1.3a7.5 7.5 0 0 0 1.025-1.238q.375-.587.375-1.412 0-1.4-1.025-2.15C13.5 6 13.033 6 12.1 6q-1.424 0-2.313.75-.887.75-1.237 1.8l1.65.65q.124-.45.562-.975C11.2 7.7 11.5 7.7 12.1 7.7q.8 0 1.2.437c.4.437.4.613.4.963q0 .5-.3.938t-.75.812q-1.1.975-1.35 1.475c-.25.5-.25.942-.25 1.825M12 22q-2.075 0-3.9-.787c-1.825-.788-2.275-1.238-3.175-2.138S3.312 17.117 2.787 15.9 2 13.383 2 12s.262-2.683.787-3.9 1.238-2.275 2.138-3.175S6.883 3.312 8.1 2.787 10.617 2 12 2s2.683.262 3.9.787 2.275 1.238 3.175 2.138 1.613 1.958 2.138 3.175S22 10.617 22 12s-.262 2.683-.787 3.9-1.238 2.275-2.138 3.175-1.958 1.613-3.175 2.138S13.383 22 12 22m0-2q3.35 0 5.675-2.325C20 15.35 20 14.233 20 12q0-3.35-2.325-5.675C15.35 4 14.233 4 12 4Q8.65 4 6.325 6.325C4 8.65 4 9.767 4 12q0 3.35 2.325 5.675C8.65 20 9.767 20 12 20"
-              />
-            </svg>
-          </div>
-          <p
-            class="text-default text-s-body-md leading-s-body-md tracking-s-body-md md:text-l-body-md md:leading-l-body-md md:tracking-l-body-md font-medium font-default"
+              Ledger
+            </p>
+          </button>
+          <button
+            class="select-hardware__wallet-option"
+            data-testid="connect-hardware-wallet-keystone"
+            type="button"
           >
-            Lattice
-          </p>
-        </button>
-        <button
-          class="select-hardware__wallet-option"
-          data-testid="connect-hardware-wallet-other-qr"
-          type="button"
-        >
-          <div
-            class="select-hardware__wallet-icon"
-          >
-            <svg
-              class="inline-block w-6 h-6 text-icon-alternative"
-              fill="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
+            <img
+              alt=""
+              class="select-hardware__wallet-image"
+              height="40"
+              src="images/hardware-wallets/keystone.svg"
+              width="40"
+            />
+            <p
+              class="text-default text-s-body-md leading-s-body-md tracking-s-body-md md:text-l-body-md md:leading-l-body-md md:tracking-l-body-md font-medium font-default"
             >
-              <path
-                d="M3 11V3h8v8zm2-2h4V5H5zM3 21v-8h8v8zm2-2h4v-4H5zm8-8V3h8v8zm2-2h4V5h-4zm4 12v-2h2v2zm-6-6v-2h2v2zm2 2v-2h2v2zm-2 2v-2h2v2zm2 2v-2h2v2zm2-2v-2h2v2zm0-4v-2h2v2zm2 2v-2h2v2z"
-              />
-            </svg>
-          </div>
-          <p
-            class="text-default text-s-body-md leading-s-body-md tracking-s-body-md md:text-l-body-md md:leading-l-body-md md:tracking-l-body-md font-medium font-default"
+              Keystone
+            </p>
+          </button>
+          <button
+            class="select-hardware__wallet-option"
+            data-testid="connect-hardware-wallet-trezor"
+            type="button"
           >
-            Other QR wallet
-          </p>
-        </button>
+            <img
+              alt=""
+              class="select-hardware__wallet-image"
+              height="40"
+              src="images/hardware-wallets/trezor.svg"
+              width="40"
+            />
+            <p
+              class="text-default text-s-body-md leading-s-body-md tracking-s-body-md md:text-l-body-md md:leading-l-body-md md:tracking-l-body-md font-medium font-default"
+            >
+              Trezor
+            </p>
+          </button>
+          <button
+            class="select-hardware__wallet-option"
+            data-testid="connect-hardware-wallet-onekey"
+            type="button"
+          >
+            <img
+              alt=""
+              class="select-hardware__wallet-image"
+              height="40"
+              src="images/hardware-wallets/onekey.svg"
+              width="40"
+            />
+            <p
+              class="text-default text-s-body-md leading-s-body-md tracking-s-body-md md:text-l-body-md md:leading-l-body-md md:tracking-l-body-md font-medium font-default"
+            >
+              OneKey
+            </p>
+          </button>
+          <button
+            class="select-hardware__wallet-option"
+            data-testid="connect-hardware-wallet-lattice"
+            type="button"
+          >
+            <div
+              class="select-hardware__wallet-icon"
+            >
+              <svg
+                class="inline-block w-6 h-6 text-icon-alternative"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M11.95 18q.525 0 .888-.362c.362-.363.362-.538.362-.888s-.12-.646-.362-.887-.538-.363-.888-.363-.646.12-.887.363-.363.537-.363.887.12.646.363.888.537.362.887.362m-.9-3.85h1.85q0-.825.187-1.3c.187-.475.48-.75 1.063-1.3a7.5 7.5 0 0 0 1.025-1.238q.375-.587.375-1.412 0-1.4-1.025-2.15C13.5 6 13.033 6 12.1 6q-1.424 0-2.313.75-.887.75-1.237 1.8l1.65.65q.124-.45.562-.975C11.2 7.7 11.5 7.7 12.1 7.7q.8 0 1.2.437c.4.437.4.613.4.963q0 .5-.3.938t-.75.812q-1.1.975-1.35 1.475c-.25.5-.25.942-.25 1.825M12 22q-2.075 0-3.9-.787c-1.825-.788-2.275-1.238-3.175-2.138S3.312 17.117 2.787 15.9 2 13.383 2 12s.262-2.683.787-3.9 1.238-2.275 2.138-3.175S6.883 3.312 8.1 2.787 10.617 2 12 2s2.683.262 3.9.787 2.275 1.238 3.175 2.138 1.613 1.958 2.138 3.175S22 10.617 22 12s-.262 2.683-.787 3.9-1.238 2.275-2.138 3.175-1.958 1.613-3.175 2.138S13.383 22 12 22m0-2q3.35 0 5.675-2.325C20 15.35 20 14.233 20 12q0-3.35-2.325-5.675C15.35 4 14.233 4 12 4Q8.65 4 6.325 6.325C4 8.65 4 9.767 4 12q0 3.35 2.325 5.675C8.65 20 9.767 20 12 20"
+                />
+              </svg>
+            </div>
+            <p
+              class="text-default text-s-body-md leading-s-body-md tracking-s-body-md md:text-l-body-md md:leading-l-body-md md:tracking-l-body-md font-medium font-default"
+            >
+              Lattice
+            </p>
+          </button>
+          <button
+            class="select-hardware__wallet-option"
+            data-testid="connect-hardware-wallet-other-qr"
+            type="button"
+          >
+            <div
+              class="select-hardware__wallet-icon"
+            >
+              <svg
+                class="inline-block w-6 h-6 text-icon-alternative"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M3 11V3h8v8zm2-2h4V5H5zM3 21v-8h8v8zm2-2h4v-4H5zm8-8V3h8v8zm2-2h4V5h-4zm4 12v-2h2v2zm-6-6v-2h2v2zm2 2v-2h2v2zm-2 2v-2h2v2zm2 2v-2h2v2zm2-2v-2h2v2zm0-4v-2h2v2zm2 2v-2h2v2z"
+                />
+              </svg>
+            </div>
+            <p
+              class="text-default text-s-body-md leading-s-body-md tracking-s-body-md md:text-l-body-md md:leading-l-body-md md:tracking-l-body-md font-medium font-default"
+            >
+              Other QR wallet
+            </p>
+          </button>
+        </div>
       </div>
     </div>
   </div>

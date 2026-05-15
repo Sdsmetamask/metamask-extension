@@ -13,6 +13,12 @@ import {
   FontWeight,
 } from '@metamask/design-system-react';
 
+import { TextVariant as LegacyTextVariant } from '../../../helpers/constants/design-system';
+import {
+  Content,
+  Header,
+  Page,
+} from '../../../components/multichain/pages/page';
 import { HardwareDeviceNames } from '../../../../shared/constants/hardware-wallets';
 import { MetaMetricsEventName } from '../../../../shared/constants/metametrics';
 import { MetaMetricsContext } from '../../../contexts/metametrics';
@@ -185,22 +191,24 @@ const SelectHardware = ({
   }
 
   return (
-    <Box className="select-hardware">
-      <Box paddingHorizontal={3} paddingVertical={4}>
-        <ButtonIcon
-          iconName={IconName.ArrowLeft}
-          size={ButtonIconSize.Md}
-          ariaLabel={t('back') as string}
-          onClick={onCancel}
-          data-testid="hardware-connect-close-btn"
-        />
-      </Box>
-      <Box paddingHorizontal={4} className="select-hardware__content">
-        <Box marginBottom={6}>
-          <Text variant={TextVariant.HeadingLg} fontWeight={FontWeight.Bold}>
-            {t('connectAHardwareWallet')}
-          </Text>
-        </Box>
+    <Page className="select-hardware">
+      <Header
+        textProps={{
+          variant: LegacyTextVariant.headingSm,
+        }}
+        startAccessory={
+          <ButtonIcon
+            iconName={IconName.ArrowLeft}
+            size={ButtonIconSize.Md}
+            ariaLabel={t('back') as string}
+            onClick={onCancel}
+            data-testid="hardware-connect-close-btn"
+          />
+        }
+      >
+        {t('connectAHardwareWallet')}
+      </Header>
+      <Content paddingLeft={4} paddingRight={4}>
         <Box className="select-hardware__wallet-list" gap={3}>
           {WALLET_OPTIONS.map((option) => (
             <button
@@ -218,8 +226,8 @@ const SelectHardware = ({
             </button>
           ))}
         </Box>
-      </Box>
-    </Box>
+      </Content>
+    </Page>
   );
 };
 
