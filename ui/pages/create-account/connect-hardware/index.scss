@@ -1,11 +1,6 @@
 @use "design-system";
 
 .select-hardware {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  height: 100%;
-
   &__wallet-list {
     display: flex;
     flex-direction: column;

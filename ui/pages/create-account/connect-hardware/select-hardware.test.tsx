@@ -2,6 +2,7 @@ import React from 'react';
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { HardwareDeviceNames } from '../../../../shared/constants/hardware-wallets';
 import { renderWithProvider } from '../../../../test/lib/render-helpers-navigate';
+import { tEn } from '../../../../test/lib/i18n-helpers';
 import SelectHardware from './select-hardware';
 
 const mockNavigate = jest.fn();
@@ -56,18 +57,18 @@ describe('SelectHardware', () => {
   it('renders wallet option labels', () => {
     render();
 
-    expect(screen.getByText('Ledger')).toBeInTheDocument();
-    expect(screen.getByText('Keystone')).toBeInTheDocument();
-    expect(screen.getByText('Trezor')).toBeInTheDocument();
-    expect(screen.getByText('OneKey')).toBeInTheDocument();
-    expect(screen.getByText('Lattice')).toBeInTheDocument();
-    expect(screen.getByText('Other QR wallet')).toBeInTheDocument();
+    expect(screen.getByText(tEn('ledger'))).toBeInTheDocument();
+    expect(screen.getByText(tEn('keystone'))).toBeInTheDocument();
+    expect(screen.getByText(tEn('trezor'))).toBeInTheDocument();
+    expect(screen.getByText(tEn('oneKey'))).toBeInTheDocument();
+    expect(screen.getByText(tEn('lattice'))).toBeInTheDocument();
+    expect(screen.getByText(tEn('otherQrWallet'))).toBeInTheDocument();
   });
 
   it('renders the page title', () => {
     render();
 
-    expect(screen.getByText('Connect a hardware wallet')).toBeInTheDocument();
+    expect(screen.getByText(tEn('connectAHardwareWallet'))).toBeInTheDocument();
   });
 
   it('navigates to previous page when back button is clicked', () => {
@@ -132,9 +133,7 @@ describe('SelectHardware', () => {
     it('shows unsupported browser message', () => {
       render(false);
 
-      expect(
-        screen.getByText('Your browser is not supported...'),
-      ).toBeInTheDocument();
+      expect(screen.getByText(tEn('browserNotSupported'))).toBeInTheDocument();
     });
 
     it('does not render wallet options', () => {

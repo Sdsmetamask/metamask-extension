@@ -20,7 +20,10 @@ import {
   Header,
   Page,
 } from '../../../components/multichain/pages/page';
-import { HardwareDeviceNames } from '../../../../shared/constants/hardware-wallets';
+import {
+  HardwareDeviceNames,
+  TREZOR_USB_VENDOR_IDS,
+} from '../../../../shared/constants/hardware-wallets';
 import { MetaMetricsEventName } from '../../../../shared/constants/metametrics';
 import { MetaMetricsContext } from '../../../contexts/metametrics';
 import { useI18nContext } from '../../../hooks/useI18nContext';
@@ -31,7 +34,7 @@ const isUSBSupported = !process.env.IN_TEST && window.navigator.usb;
 type WalletOptionBase = {
   id: string;
   labelKey: string;
-  device: string;
+  device: HardwareDeviceNames;
   testId: string;
 };
 
@@ -133,11 +136,7 @@ const SelectHardware = ({
         setTrezorRequestDevicePending(true);
         try {
           await window.navigator.usb.requestDevice({
-            filters: [
-              { vendorId: 0x534c, productId: 0x0001 },
-              { vendorId: 0x1209, productId: 0x53c0 },
-              { vendorId: 0x1209, productId: 0x53c1 },
-            ],
+            filters: TREZOR_USB_VENDOR_IDS,
           });
         } catch (e) {
           if (!(e instanceof Error) || !e.message.match('No device selected')) {
