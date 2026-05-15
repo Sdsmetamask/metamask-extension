@@ -18,23 +18,20 @@ import { Severity } from '../../../../../helpers/constants/design-system';
 import { useI18nContext } from '../../../../../hooks/useI18nContext';
 import { RevertReason } from '../../../components/revert-reason/revert-reason';
 import { useEstimationFailed } from '../../gas/useEstimationFailed';
-import { useIsGaslessSupported } from '../../gas/useIsGaslessSupported';
+import { useIsNetworkGasSponsored } from '../../../../../hooks/useIsNetworkGasSponsored';
+import { useTransactionMetadataRequest } from '../../transactions/useTransactionMetadataRequest';
 
 export function useGasEstimateFailedAlerts(): Alert[] {
   const t = useI18nContext();
   const estimationFailed = useEstimationFailed();
 
-  const {
-    isSupported: isGaslessSupported,
-    pending: isGaslessSupportCheckPending,
-  } = useIsGaslessSupported();
+  const { chainId } = useTransactionMetadataRequest();
+
+  // Cannot rely on per-tx `isGasFeeSponsored` because it is set to `false` when fail.
+  const { isNetworkGasSponsored } = useIsNetworkGasSponsored(chainId);
 
   return useMemo(() => {
-    if (
-      !estimationFailed ||
-      isGaslessSupportCheckPending ||
-      isGaslessSupported
-    ) {
+    if (!estimationFailed || isNetworkGasSponsored) {
       return [];
     }
 
@@ -53,7 +50,7 @@ export function useGasEstimateFailedAlerts(): Alert[] {
         severity: Severity.Warning,
       },
     ];
-  }, [t, estimationFailed, isGaslessSupportCheckPending, isGaslessSupported]);
+  }, [t, estimationFailed, isNetworkGasSponsored]);
 }
 
 function GasEstimateFailedAlertMessage() {
