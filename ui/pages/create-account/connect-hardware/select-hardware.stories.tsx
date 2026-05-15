@@ -25,7 +25,6 @@ export default {
 export const DefaultStory = () => {
   return (
     <SelectHardware
-      onCancel={() => null}
       browserSupported
       connectToHardwareWallet={() => {
         /* no-op */
@@ -39,7 +38,6 @@ DefaultStory.storyName = 'Default';
 export const BrowserNotSupported = () => {
   return (
     <SelectHardware
-      onCancel={() => null}
       browserSupported={false}
       connectToHardwareWallet={() => undefined}
     />

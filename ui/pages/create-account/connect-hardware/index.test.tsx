@@ -391,15 +391,15 @@ describe('ConnectHardwareForm', () => {
     });
   });
 
-  describe('onCancel', () => {
-    it('navigates to the most recent overview page', () => {
+  describe('back button', () => {
+    it('navigates to the previous page', () => {
       const mockStore = configureMockStore([thunk])(createMockState());
       renderWithProvider(<ConnectHardwareForm />, mockStore);
 
       const closeButton = screen.getByTestId('hardware-connect-close-btn');
       fireEvent.click(closeButton);
 
-      expect(mockUseNavigate).toHaveBeenCalledWith(MOCK_RECENT_PAGE);
+      expect(mockUseNavigate).toHaveBeenCalledWith(-1);
     });
   });
 

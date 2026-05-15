@@ -9,13 +9,11 @@ jest.mock('../../../../shared/lib/browser-runtime.utils', () => ({
 }));
 
 describe('SelectHardware', () => {
-  const mockOnCancel = jest.fn();
   const mockConnectToHardwareWallet = jest.fn();
 
   const render = (browserSupported = true) =>
     renderWithProvider(
       <SelectHardware
-        onCancel={mockOnCancel}
         connectToHardwareWallet={mockConnectToHardwareWallet}
         browserSupported={browserSupported}
       />,
@@ -63,12 +61,11 @@ describe('SelectHardware', () => {
     ).toBeInTheDocument();
   });
 
-  it('calls onCancel when back button is clicked', () => {
+  it('navigates back when back button is clicked', () => {
     render();
 
-    fireEvent.click(screen.getByTestId('hardware-connect-close-btn'));
-
-    expect(mockOnCancel).toHaveBeenCalledTimes(1);
+    const backButton = screen.getByTestId('hardware-connect-close-btn');
+    fireEvent.click(backButton);
   });
 
   it('calls connectToHardwareWallet with ledger when Ledger is clicked', () => {

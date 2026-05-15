@@ -1,4 +1,5 @@
 import React, { useCallback, useContext, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { upperFirst } from 'lodash';
 import {
   Box,
@@ -23,6 +24,7 @@ import { HardwareDeviceNames } from '../../../../shared/constants/hardware-walle
 import { MetaMetricsEventName } from '../../../../shared/constants/metametrics';
 import { MetaMetricsContext } from '../../../contexts/metametrics';
 import { useI18nContext } from '../../../hooks/useI18nContext';
+import { PREVIOUS_ROUTE } from '../../../helpers/constants/routes';
 
 const isUSBSupported = !process.env.IN_TEST && window.navigator.usb;
 
@@ -97,17 +99,16 @@ const WALLET_OPTIONS: WalletOption[] = [
 ];
 
 type SelectHardwareProps = {
-  onCancel: () => void;
   connectToHardwareWallet: (device: string) => void;
   browserSupported: boolean;
 };
 
 const SelectHardware = ({
-  onCancel,
   connectToHardwareWallet,
   browserSupported,
 }: SelectHardwareProps) => {
   const t = useI18nContext();
+  const navigate = useNavigate();
   const { trackEvent } = useContext(MetaMetricsContext);
   const [trezorRequestDevicePending, setTrezorRequestDevicePending] =
     useState(false);
@@ -201,7 +202,7 @@ const SelectHardware = ({
             iconName={IconName.ArrowLeft}
             size={ButtonIconSize.Md}
             ariaLabel={t('back') as string}
-            onClick={onCancel}
+            onClick={() => navigate(PREVIOUS_ROUTE)}
             data-testid="hardware-connect-close-btn"
           />
         }

@@ -669,7 +669,6 @@ const ConnectHardwareForm = () => {
         <SelectHardware
           connectToHardwareWallet={connectToHardwareWallet}
           browserSupported={browserSupported}
-          onCancel={onCancel}
         />
       );
     }
