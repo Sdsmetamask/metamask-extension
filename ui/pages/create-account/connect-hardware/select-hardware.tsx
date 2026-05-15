@@ -85,11 +85,11 @@ const WALLET_OPTIONS: WalletOption[] = [
   },
   {
     id: 'lattice',
-    type: 'icon',
+    type: 'image',
     labelKey: 'lattice',
     device: HardwareDeviceNames.lattice,
     testId: 'connect-hardware-wallet-lattice',
-    iconName: IconName.Question,
+    imageSrc: 'images/hardware-wallets/lattice.svg',
   },
   {
     id: 'other-qr',
