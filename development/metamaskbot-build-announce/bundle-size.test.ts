@@ -60,6 +60,7 @@ describe('buildBundleSizeDiffSection', () => {
 
   afterEach(() => {
     mockFetch.mockReset();
+    jest.restoreAllMocks();
   });
 
   const artifacts = getArtifactLinks(
@@ -111,6 +112,19 @@ describe('buildBundleSizeDiffSection', () => {
     expect(result).toContain('other: n/a');
     expect(result).toContain('contentScripts: n/a');
     expect(result).toContain('zip: n/a');
+  });
+
+  it('uses the first baseline candidate found in history data', async () => {
+    mockSuccessfulFetches();
+
+    const result = await buildBundleSizeDiffSection(
+      artifacts,
+      `unknown ${MERGE_BASE}`,
+    );
+
+    expect(result).toContain('background: 100 Bytes (10%)');
+    expect(result).toContain('ui: 200 Bytes (10%)');
+    expect(result).toContain('common: 0 Bytes (0%)');
   });
 
   it('shows a warning when the background bundle increases beyond the threshold', async () => {
@@ -181,7 +195,29 @@ describe('buildBundleSizeDiffSection', () => {
     ).rejects.toThrow('Failed to fetch prBundleSizeStats');
   });
 
-  it('throws when the dev bundle size data fetch fails', async () => {
+  it('renders current sizes when baseline commit hashes are missing', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(prStats),
+    } as unknown as Response);
+
+    const result = await buildBundleSizeDiffSection(artifacts);
+
+    expect(result).toContain('Bundle sizes');
+    expect(result).toContain('background: 1.07 KiB');
+    expect(result).toContain('ui: 2.15 KiB');
+    expect(result).toContain('common: 300 Bytes');
+    expect(result).toContain('other: 400 Bytes');
+    expect(result).toContain('contentScripts: 500 Bytes');
+    expect(result).toContain('zip: 600 Bytes');
+    expect(result).toContain(
+      '<small>No bundle-size baseline commit was available for this build, so diff values are omitted.</small>',
+    );
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders current sizes when the dev bundle size data fetch fails', async () => {
+    jest.spyOn(console, 'warn').mockImplementation();
     mockFetch
       .mockResolvedValueOnce({
         ok: true,
@@ -192,12 +228,21 @@ describe('buildBundleSizeDiffSection', () => {
         statusText: 'Not Found',
       } as Response);
 
-    await expect(
-      buildBundleSizeDiffSection(artifacts, MERGE_BASE),
-    ).rejects.toThrow('Failed to fetch devBundleSizeStats');
+    const result = await buildBundleSizeDiffSection(artifacts, MERGE_BASE);
+
+    expect(result).toContain('Bundle sizes');
+    expect(result).toContain('background: 1.07 KiB');
+    expect(result).toContain('ui: 2.15 KiB');
+    expect(result).toContain('common: 300 Bytes');
+    expect(result).toContain('other: 400 Bytes');
+    expect(result).toContain('contentScripts: 500 Bytes');
+    expect(result).toContain('zip: 600 Bytes');
+    expect(result).toContain(
+      '<small>Bundle-size history data could not be loaded, so diff values are omitted.</small>',
+    );
   });
 
-  it('uses n/a when the merge base hash is not in the data', async () => {
+  it('renders current sizes when the baseline commit hash is not in history data', async () => {
     mockFetch
       .mockResolvedValueOnce({
         ok: true,
@@ -210,13 +255,16 @@ describe('buildBundleSizeDiffSection', () => {
 
     const result = await buildBundleSizeDiffSection(artifacts, 'unknown-hash');
 
-    expect(result).toContain('Bundle size diffs');
-    expect(result).toContain('background: n/a');
-    expect(result).toContain('ui: n/a');
-    expect(result).toContain('common: n/a');
-    expect(result).toContain('other: n/a');
-    expect(result).toContain('contentScripts: n/a');
-    expect(result).toContain('zip: n/a');
+    expect(result).toContain('Bundle sizes');
+    expect(result).toContain('background: 1.07 KiB');
+    expect(result).toContain('ui: 2.15 KiB');
+    expect(result).toContain('common: 300 Bytes');
+    expect(result).toContain('other: 400 Bytes');
+    expect(result).toContain('contentScripts: 500 Bytes');
+    expect(result).toContain('zip: 600 Bytes');
+    expect(result).toContain(
+      '<small>No matching bundle-size baseline was found in the history data, so diff values are omitted.</small>',
+    );
     expect(result).not.toContain('Warning!');
     expect(result).not.toContain('Bundle size reduced!');
   });
