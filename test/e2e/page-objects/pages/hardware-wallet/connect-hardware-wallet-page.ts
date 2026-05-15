@@ -25,8 +25,7 @@ class ConnectHardwareWalletPage {
   private readonly connectQrButton =
     '[data-testid="connect-hardware-wallet-other-qr"]';
 
-  private readonly closeButton =
-    '[data-testid="hardware-connect-close-btn"]';
+  private readonly closeButton = '[data-testid="hardware-connect-close-btn"]';
 
   constructor(driver: Driver) {
     this.driver = driver;
