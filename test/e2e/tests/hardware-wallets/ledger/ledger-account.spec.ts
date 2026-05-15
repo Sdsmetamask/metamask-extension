@@ -42,9 +42,6 @@ describe('Ledger Hardware', function () {
           return; // Exit early for Firefox
         }
 
-        // Click continue button when browser is not Firefox
-        await connectHardwareWalletPage.clickContinueButton();
-
         // For non-Firefox browsers, continue with the existing test flow
         const selectLedgerAccountPage = new SelectHardwareWalletAccountPage(
           driver,
@@ -100,9 +97,6 @@ describe('Ledger Hardware', function () {
           await connectHardwareWalletPage.checkFirefoxNotSupportedIsDisplayed();
           return; // Exit early for Firefox
         }
-
-        // Click continue button when browser is not Firefox
-        await connectHardwareWalletPage.clickContinueButton();
 
         // For non-Firefox browsers, continue with the existing test flow
         // Unlock 5 Ledger accounts

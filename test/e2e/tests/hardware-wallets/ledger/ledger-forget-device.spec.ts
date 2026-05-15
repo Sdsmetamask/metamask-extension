@@ -43,9 +43,6 @@ describe('Ledger Hardware', function (this: Suite) {
           return;
         }
 
-        await connectHardwareWalletPage.checkPageIsLoaded();
-        await connectHardwareWalletPage.clickContinueButton();
-
         const selectLedgerAccountPage = new SelectHardwareWalletAccountPage(
           driver,
         );
