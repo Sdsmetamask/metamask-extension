@@ -1,15 +1,17 @@
 import browser from 'webextension-polyfill';
 import log from 'loglevel';
 import { v4 as uuidv4 } from 'uuid';
-import { ErrorLike } from '../../../shared/constants/errors';
+import { type ErrorLike } from '../../../shared/constants/errors';
 import {
   getErrorHtml,
   maybeGetLocaleContext,
 } from '../../../shared/lib/error-utils';
 import { SUPPORT_LINK } from '../../../shared/lib/ui-utils';
 import {
+  CriticalErrorRepairAction,
   CriticalErrorType,
-  METHOD_REPAIR_DATABASE_TIMEOUT,
+  isStateCorruptionErrorType,
+  METHOD_REPAIR_DATABASE,
 } from '../../../shared/constants/state-corruption';
 import { CRITICAL_ERROR_SCREEN_VIEWED } from '../../../shared/constants/start-up-errors';
 import {
@@ -209,7 +211,15 @@ export async function displayCriticalErrorMessage(
   criticalErrorType?: CriticalErrorType,
 ): Promise<never> {
   const backup = port ? await safeGetVaultBackup() : null;
-  const canTriggerRestore = port && hasVault(backup);
+  let repairAction: CriticalErrorRepairAction =
+    CriticalErrorRepairAction.None;
+  if (port) {
+    if (hasVault(backup)) {
+      repairAction = CriticalErrorRepairAction.Recover;
+    } else if (isStateCorruptionErrorType(criticalErrorType)) {
+      repairAction = CriticalErrorRepairAction.Reset;
+    }
+  }
 
   try {
     port?.postMessage({
@@ -217,7 +227,7 @@ export async function displayCriticalErrorMessage(
         method: CRITICAL_ERROR_SCREEN_VIEWED,
         params: {
           backup,
-          canTriggerRestore,
+          repairAction,
           criticalErrorType,
         },
       },
@@ -232,7 +242,7 @@ export async function displayCriticalErrorMessage(
     error,
     localeContext,
     SUPPORT_LINK,
-    canTriggerRestore,
+    repairAction,
   );
 
   const criticalErrorContainer = displayCriticalErrorPage(container, html);
@@ -252,14 +262,14 @@ export async function displayCriticalErrorMessage(
       await handleRestartAction(error, shouldReport);
     });
 
-    // Attempt recovery button: trigger vault recovery flow.
-    if (canTriggerRestore) {
-      const restoreButton =
+    // Recovery/reset button: trigger the critical error repair flow.
+    if (port && repairAction !== CriticalErrorRepairAction.None) {
+      const repairButton =
         criticalErrorContainer.querySelector<HTMLButtonElement>(
-          '#critical-error-restore-link',
+          '#critical-error-repair-button',
         );
 
-      restoreButton?.addEventListener('click', (event: Event) => {
+      repairButton?.addEventListener('click', (event: Event) => {
         event.preventDefault();
         // eslint-disable-next-line no-alert
         const confirmed = confirm(
@@ -268,8 +278,12 @@ export async function displayCriticalErrorMessage(
         if (confirmed) {
           port.postMessage({
             data: {
-              method: METHOD_REPAIR_DATABASE_TIMEOUT,
-              params: { criticalErrorType, backup },
+              method: METHOD_REPAIR_DATABASE,
+              params: {
+                repairAction,
+                criticalErrorType,
+                backup,
+              },
             },
           });
         }

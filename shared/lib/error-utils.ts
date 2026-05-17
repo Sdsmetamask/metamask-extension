@@ -1,5 +1,6 @@
 import { memoize, escape as lodashEscape } from 'lodash';
 import type { ErrorLike } from '../constants/errors';
+import { CriticalErrorRepairAction } from '../constants/state-corruption';
 import type { I18NMessageDict } from './i18n';
 import {
   fetchLocale,
@@ -141,7 +142,7 @@ export async function maybeGetLocaleContext(
  * @param error - The error object to log.
  * @param localeContext - The MetaMask state containing the current locale and translation function.
  * @param supportLink - The support link to include in the footer.
- * @param hasBackup - Whether a vault backup exists in IndexedDB.
+ * @param repairAction - The repair action to render.
  * @returns The HTML string for the critical error message.
  */
 export function getErrorHtml(
@@ -149,7 +150,7 @@ export function getErrorHtml(
   error: ErrorLike | undefined,
   localeContext: LocaleContext,
   supportLink?: string,
-  hasBackup = false,
+  repairAction: CriticalErrorRepairAction = CriticalErrorRepairAction.None,
 ): string {
   switchDirectionForPreferredLocale(localeContext.preferredLocale);
   const { t, preferredLocale, localeMessages, enLocaleMessages } =
@@ -162,14 +163,19 @@ export function getErrorHtml(
     <span>${lodashEscape(t('errorLegalTextNoPersonalInfo'))}</span>
 `;
 
-  const attemptRecoveryButton = hasBackup
-    ? `<button
-          id="critical-error-restore-link"
+  const repairButton =
+    repairAction === CriticalErrorRepairAction.None
+      ? ''
+      : `<button
+          id="critical-error-repair-button"
           type="button"
           class="critical-error__button-secondary button">
-          ${lodashEscape(t('criticalErrorAttemptRecovery'))}
-        </button>`
-    : '';
+          ${lodashEscape(
+            repairAction === CriticalErrorRepairAction.Reset
+              ? t('stateCorruptionResetMetaMaskState')
+              : t('criticalErrorAttemptRecovery'),
+          )}
+        </button>`;
 
   const externalIconSvg = `<svg
     class="critical-error__external-icon"
@@ -198,7 +204,7 @@ export function getErrorHtml(
 
   const secondaryActions = `
       ${dividerSection}
-      ${attemptRecoveryButton}
+      ${repairButton}
       ${reinstallButton}
     `;
 

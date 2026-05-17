@@ -1,3 +1,4 @@
+import { CriticalErrorRepairAction } from '../constants/state-corruption';
 import {
   type I18NMessageDict,
   fetchLocale,
@@ -50,6 +51,7 @@ const enMessages: I18NMessageDict = {
   criticalErrorAttemptRecovery: { message: 'Attempt recovery' },
   criticalErrorReinstallMetamask: { message: 'Reinstall MetaMask' },
   criticalErrorStillHavingIssues: { message: 'Still having issues?' },
+  stateCorruptionResetMetaMaskState: { message: 'Reset MetaMask State' },
   criticalErrorFooterContactSupport: {
     message: 'If none of the above works, $1',
   },
@@ -284,7 +286,7 @@ describe('Error utils Tests', function () {
       expect(html).toContain('Something broke');
     });
 
-    it('includes attempt recovery button when hasBackup is true', async () => {
+    it('includes repair button when repairAction is recover', async () => {
       jest.mocked(fetchLocale).mockResolvedValue(enMessages);
       jest
         .mocked(loadRelativeTimeFormatLocaleData)
@@ -297,15 +299,15 @@ describe('Error utils Tests', function () {
         error,
         localeContext,
         SUPPORT_LINK,
-        true,
+        CriticalErrorRepairAction.Recover,
       );
 
-      expect(html).toContain('critical-error-restore-link');
+      expect(html).toContain('critical-error-repair-button');
       expect(html).toContain(enMessages.criticalErrorAttemptRecovery.message);
       expect(html).toContain('critical-error__button-secondary');
     });
 
-    it('omits the attempt recovery button when hasBackup is false', async () => {
+    it('includes reset state button when repairAction is reset', async () => {
       jest.mocked(fetchLocale).mockResolvedValue(enMessages);
       jest
         .mocked(loadRelativeTimeFormatLocaleData)
@@ -317,10 +319,32 @@ describe('Error utils Tests', function () {
         undefined,
         localeContext,
         SUPPORT_LINK,
-        false,
+        CriticalErrorRepairAction.Reset,
       );
 
-      expect(html).not.toContain('critical-error-restore-link');
+      expect(html).toContain('critical-error-repair-button');
+      expect(html).toContain(enMessages.stateCorruptionResetMetaMaskState.message);
+      expect(html).not.toContain(
+        enMessages.criticalErrorAttemptRecovery.message,
+      );
+    });
+
+    it('omits the repair button when repairAction is none', async () => {
+      jest.mocked(fetchLocale).mockResolvedValue(enMessages);
+      jest
+        .mocked(loadRelativeTimeFormatLocaleData)
+        .mockResolvedValue(undefined);
+
+      const localeContext = await maybeGetLocaleContext('en');
+      const html = getErrorHtml(
+        'troubleStarting',
+        undefined,
+        localeContext,
+        SUPPORT_LINK,
+        CriticalErrorRepairAction.None,
+      );
+
+      expect(html).not.toContain('critical-error-repair-button');
       expect(html).not.toContain(
         enMessages.criticalErrorAttemptRecovery.message,
       );
