@@ -1,4 +1,4 @@
-{
+{"ghcr.io/devcontainers-extra/features/beehive:1": {}
   "customizations": {
     "vscode": {
       "extensions": [
